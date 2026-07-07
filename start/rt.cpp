@@ -76,42 +76,6 @@ public:
 	}
 };
 
-// Escena: paredes+suelo+techo difusos y dos esferas difusas (comunes a todos los modos).
-// El emisor esférico (phase-01) y la fuente puntual (phase-02) son mutuamente excluyentes
-// y se agregan en buildScene() según el modo.
-std::vector<Sphere> spheres;
-
-// RF-3 (phase-02): la fuente puntual se representa como lista aparte, NO como esfera de
-// spheres[] — así ningún rayo (cámara o sombra) la intersecta jamás y el techo bajo la
-// luz queda "sin esfera visible" según pide el criterio de aceptación.
-class PointLight
-{
-public:
-	Point p;  // posicion
-	Color I;  // intensidad radiante
-
-	PointLight(Point p_, Color I_) : p(p_), I(I_) {}
-};
-std::vector<PointLight> pointLights;
-
-// arma la escena: geometría base siempre presente; agrega el emisor esférico (modos MC
-// de la phase-01) o la fuente puntual (modo "point" de la phase-02), nunca ambos
-void buildScene(bool pointMode) {
-	//                    radio  posicion                       albedo              emision
-	spheres.push_back(Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25), Color()));          // pared izq
-	spheres.push_back(Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75), Color()));          // pared der
-	spheres.push_back(Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.25, .75, .25), Color()));          // pared detras
-	spheres.push_back(Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.25, .75, .75), Color()));          // suelo
-	spheres.push_back(Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .25), Color()));          // techo
-	spheres.push_back(Sphere(16.5, Point(-23, -24.3, -34.6), Color(.2, .3, .4),    Color()));          // esfera abajo-izq
-	spheres.push_back(Sphere(16.5, Point(23, -24.3, -3.6),   Color(.4, .3, .2),    Color()));          // esfera abajo-der
-
-	if (pointMode)
-		pointLights.push_back(PointLight(Point(0, 24.3, 0), Color(4000, 4000, 4000)));
-	else
-		spheres.push_back(Sphere(10.5, Point(0, 24.3, 0), Color(1, 1, 1), Color(10, 10, 10))); // esfera arriba (emisor)
-}
-
 // limita el valor de x a [0,1]
 inline double clamp(const double x) {
 	if(x < 0.0)
@@ -125,6 +89,24 @@ inline double clamp(const double x) {
 inline int toDisplayValue(const double x) {
 	return int( pow( clamp(x), 1.0/2.2 ) * 255 + .5);
 }
+
+// Escena: paredes+suelo+techo difusos y dos esferas difusas (comunes a las dos escenas).
+// Las fuentes de área (esferas con ke != 0) viven en spheres[] para que los rayos de
+// cámara y de sombra las intersecten como cualquier objeto; sus índices se cachean en
+// areaLightIdx para el muestreo de importancia (RF-1/RF-2). La fuente puntual (phase-02)
+// sigue en una lista aparte: así ningún rayo la intersecta jamás.
+std::vector<Sphere> spheres;
+std::vector<int> areaLightIdx;
+
+class PointLight
+{
+public:
+	Point p;  // posicion
+	Color I;  // intensidad radiante
+
+	PointLight(Point p_, Color I_) : p(p_), I(I_) {}
+};
+std::vector<PointLight> pointLights;
 
 // calcular la intersección del rayo r con todas las esferas
 // regresar true si hubo una intersección, falso de otro modo
@@ -145,91 +127,55 @@ inline bool intersect(const Ray &r, double &t, int &id) {
 
 inline bool isBlack(const Color &c) { return c.x == 0.0 && c.y == 0.0 && c.z == 0.0; }
 
-// muestreadores de dirección seleccionables por CLI (RF-2)
-enum SamplerType { SAMPLER_UNIFORM_SPHERE, SAMPLER_UNIFORM_HEMI, SAMPLER_COSINE_HEMI };
-SamplerType samplerType = SAMPLER_COSINE_HEMI;
+// escenas seleccionables por CLI (RF-4): 1L = escena de la phase-01 (un emisor de área);
+// 2A1P = dos emisores de área + una puntual (Proyecto 3, parte 2)
+enum SceneType { SCENE_1L, SCENE_2A1P };
 
-// Calcula el valor de color para el rayo dado: estimador Monte Carlo de
-// iluminación directa (una muestra) para emisores esféricos con materiales difusos.
-Color shade(const Ray &r, unsigned short *Xi) {
-	double t;
-	int id = 0;
-	// determinar que esfera (id) y a que distancia (t) el rayo intersecta
-	if (!intersect(r, t, id))
-		return Color(); // el rayo no intersecto objeto, negro
+void buildScene(SceneType scene) {
+	//                    radio  posicion                       albedo              emision
+	spheres.push_back(Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25), Color()));          // pared izq
+	spheres.push_back(Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75), Color()));          // pared der
+	spheres.push_back(Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.25, .75, .25), Color()));          // pared detras
+	spheres.push_back(Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.25, .75, .75), Color()));          // suelo
+	spheres.push_back(Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .25), Color()));          // techo
+	spheres.push_back(Sphere(16.5, Point(-23, -24.3, -34.6), Color(.2, .3, .4),    Color()));          // esfera abajo-izq
+	spheres.push_back(Sphere(16.5, Point(23, -24.3, -3.6),   Color(.4, .3, .2),    Color()));          // esfera abajo-der
 
-	const Sphere &obj = spheres[id];
-
-	// aclaración del enunciado: si el rayo de cámara toca directamente un emisor,
-	// se regresa su emisión (si no, la fuente aparecería negra)
-	if (!isBlack(obj.ke))
-		return obj.ke;
-
-	// determinar coordenadas y normal en el punto de interseccion
-	Point x = r.o + r.d * t;
-	Vector n = (x - obj.p).normalize();
-
-	// base ortonormal local sobre n
-	Vector s, tang;
-	if (fabs(n.x) > fabs(n.y))
-		tang = Vector(n.z, 0, -n.x) * (1.0 / sqrt(n.x * n.x + n.z * n.z));
-	else
-		tang = Vector(0, n.z, -n.y) * (1.0 / sqrt(n.y * n.y + n.z * n.z));
-	s = tang % n;
-
-	// muestrear una dirección local (sinθ·cosφ, sinθ·senφ, cosθ)
-	double xi1 = erand48(Xi);
-	double xi2 = erand48(Xi);
-	double phi = 2 * PI * xi2;
-	double cosTheta, pdf;
-	switch (samplerType) {
-	case SAMPLER_UNIFORM_SPHERE:
-		cosTheta = 1 - 2 * xi1;
-		pdf = 1.0 / (4 * PI);
-		break;
-	case SAMPLER_UNIFORM_HEMI:
-		cosTheta = xi1;
-		pdf = 1.0 / (2 * PI);
-		break;
-	default: // SAMPLER_COSINE_HEMI
-		cosTheta = sqrt(1 - xi1);
-		pdf = cosTheta / PI;
-		break;
+	if (scene == SCENE_1L) {
+		spheres.push_back(Sphere(10.5, Point(0, 24.3, 0), Color(1, 1, 1), Color(10, 10, 10)));         // emisor único
+	} else { // SCENE_2A1P
+		spheres.push_back(Sphere(10.5, Point(-23, 24.3, 0),   Color(1, 1, 1), Color(12, 5, 5)));       // emisor rojizo
+		spheres.push_back(Sphere(5,    Point(23, 24.3, -50),  Color(1, 1, 1), Color(5, 5, 12)));       // emisor azulado
+		pointLights.push_back(PointLight(Point(0, 24.3, 0), Color(2000, 2000, 2000)));                 // puntual
 	}
-	double sin2 = 1.0 - cosTheta * cosTheta;
-	double sinTheta = sin2 > 0.0 ? sqrt(sin2) : 0.0;
-	double wx = sinTheta * cos(phi);
-	double wy = sinTheta * sin(phi);
-	double wz = cosTheta;
 
-	// llevar la dirección local a la base global (s, tang, n)
-	Vector wi = s * wx + tang * wy + n * wz;
-
-	// lanzar el rayo de la muestra (la visibilidad va implícita en esta intersección)
-	double tShadow;
-	int idShadow = 0;
-	Color Le;
-	if (intersect(Ray(x, wi), tShadow, idShadow))
-		Le = spheres[idShadow].ke;
-
-	Color fr = obj.c * (1.0 / PI);
-	double cosThetaN = n.dot(wi);
-	return fr.mult(Le) * (cosThetaN / pdf);
+	for (size_t i = 0; i < spheres.size(); i++)
+		if (!isBlack(spheres[i].ke))
+			areaLightIdx.push_back((int)i);
 }
 
-// Calcula el valor de color para el rayo dado: iluminación directa determinista con
-// fuentes puntuales (phase-02, RF-1/RF-2). Sin Monte Carlo: un término cerrado por
-// fuente, sombras duras por rayo de sombra, 1 muestra por pixel (sin jitter).
-Color shadePoint(const Ray &r) {
-	double t;
-	int id = 0;
-	if (!intersect(r, t, id))
-		return Color(); // el rayo no intersecto objeto, negro
+// base ortonormal local (s, tang) sobre el eje nrm (uniforme en phi, cualquier rotación sirve)
+inline void buildBasis(Vector nrm, Vector &s, Vector &tang) {
+	if (fabs(nrm.x) > fabs(nrm.y))
+		tang = Vector(nrm.z, 0, -nrm.x) * (1.0 / sqrt(nrm.x * nrm.x + nrm.z * nrm.z));
+	else
+		tang = Vector(0, nrm.z, -nrm.y) * (1.0 / sqrt(nrm.y * nrm.y + nrm.z * nrm.z));
+	s = tang % nrm;
+}
 
-	const Sphere &obj = spheres[id];
-	Point x = r.o + r.d * t;
-	Vector n = (x - obj.p).normalize();
+// prueba de visibilidad: rayo de sombra desde x en dirección w; bloqueado si algo
+// intersecta antes de llegar a dist (epsilon de la fase 0 para evitar acné de sombra)
+inline bool visible(const Point &x, const Vector &w, double dist) {
+	double tHit; int idHit = 0;
+	if (intersect(Ray(x, w), tHit, idHit) && tHit < dist - 1e-4)
+		return false;
+	return true;
+}
 
+// término determinista de las fuentes puntuales (phase-02, RF-1/RF-2): se suma en cada
+// muestra del estimador, para cualquier modo (RF-3 — una puntual r=0 nunca es alcanzada
+// por un rayo aleatorio, así que necesita su propio término cerrado)
+inline Color pointLightTerm(const Point &x, const Vector &n, const Color &albedo) {
 	Color L;
 	for (size_t i = 0; i < pointLights.size(); i++) {
 		const PointLight &light = pointLights[i];
@@ -241,38 +187,171 @@ Color shadePoint(const Ray &r) {
 
 		double cosTheta = n.dot(w);
 		if (cosTheta <= 0.0)
-			continue; // fuente detras de la superficie: contribucion 0
-
-		// rayo de sombra: si algo bloquea antes de llegar a la fuente, contribucion 0
-		// (epsilon 1e-4 de la fase 0 para evitar acne de sombra)
-		double tShadow;
-		int idShadow = 0;
-		if (intersect(Ray(x, w), tShadow, idShadow) && tShadow < dist - 1e-4)
+			continue;
+		if (!visible(x, w, dist))
 			continue;
 
-		Color fr = obj.c * (1.0 / PI);
+		Color fr = albedo * (1.0 / PI);
 		L = L + fr.mult(light.I) * (cosTheta / r2);
 	}
 	return L;
 }
 
+// métodos de muestreo de importancia de fuentes esféricas, seleccionables por CLI (RF-4)
+enum EstimatorMode { MODE_AREALIGHT, MODE_SOLIDANGLE, MODE_COSHEMI };
+EstimatorMode estimatorMode = MODE_COSHEMI;
+
+// RF-1: muestreo de área. x' = c + r·ω con ω uniforme en la esfera; pdf_ω = d²/(4πr²·cosθ');
+// contribución (albedo/π)·Le·cosθ/pdf_ω con rayo de sombra hacia x'.
+Color sampleAreaLight(const Sphere &light, const Point &x, const Vector &n, const Color &albedo, unsigned short *Xi) {
+	double xi1 = erand48(Xi);
+	double xi2 = erand48(Xi);
+	double cosThetaL = 1 - 2 * xi1;
+	double sin2L = 1.0 - cosThetaL * cosThetaL;
+	double sinThetaL = sin2L > 0.0 ? sqrt(sin2L) : 0.0;
+	double phiL = 2 * PI * xi2;
+	Vector omega(sinThetaL * cos(phiL), sinThetaL * sin(phiL), cosThetaL);
+
+	Point xp = light.p + omega * light.r;
+	Vector toXp = xp - x;
+	double d2 = toXp.dot(toXp);
+	double d = sqrt(d2);
+	Vector wi = toXp * (1.0 / d);
+
+	double cosThetaSurface = n.dot(wi);
+	double cosThetaLight = -omega.dot(wi); // n_luz · (dirección x'→x)
+	if (cosThetaSurface <= 0.0 || cosThetaLight <= 0.0)
+		return Color();
+	if (!visible(x, wi, d))
+		return Color();
+
+	double pdf = d2 / (4 * PI * light.r * light.r * cosThetaLight);
+	Color fr = albedo * (1.0 / PI);
+	return fr.mult(light.ke) * (cosThetaSurface / pdf);
+}
+
+// RF-2: muestreo del ángulo sólido (cono hacia la fuente). pdf_ω = 1/(2π(1−cosθmax));
+// visible si el PRIMER hit del rayo (x, ω) es esta misma fuente. Misma contribución que RF-1.
+Color sampleSolidAngle(const Sphere &light, int lightIdx, const Point &x, const Vector &n, const Color &albedo, unsigned short *Xi) {
+	Vector toCenter = light.p - x;
+	double dist2 = toCenter.dot(toCenter);
+	double dist = sqrt(dist2);
+	Vector W = toCenter * (1.0 / dist);
+
+	double sinMax2 = (light.r * light.r) / dist2;
+	double cosThetaMax = sinMax2 < 1.0 ? sqrt(1.0 - sinMax2) : 0.0;
+
+	Vector s, tang;
+	buildBasis(W, s, tang);
+
+	double xi1 = erand48(Xi);
+	double xi2 = erand48(Xi);
+	double cosTheta = 1 - xi1 + xi1 * cosThetaMax;
+	double sin2 = 1.0 - cosTheta * cosTheta;
+	double sinTheta = sin2 > 0.0 ? sqrt(sin2) : 0.0;
+	double phi = 2 * PI * xi2;
+	Vector wi = s * (sinTheta * cos(phi)) + tang * (sinTheta * sin(phi)) + W * cosTheta;
+
+	double cosThetaSurface = n.dot(wi);
+	if (cosThetaSurface <= 0.0)
+		return Color();
+
+	double tHit; int idHit = 0;
+	if (!intersect(Ray(x, wi), tHit, idHit) || idHit != lightIdx)
+		return Color();
+
+	double pdf = 1.0 / (2 * PI * (1 - cosThetaMax));
+	Color fr = albedo * (1.0 / PI);
+	return fr.mult(light.ke) * (cosThetaSurface / pdf);
+}
+
+// Modo "coshemi": estimador coseno-hemisférico de la phase-01 (una muestra) más el
+// término determinista de cada fuente puntual (RF-3).
+Color shadeCosHemi(const Ray &r, unsigned short *Xi) {
+	double t; int id = 0;
+	if (!intersect(r, t, id))
+		return Color(); // el rayo no intersecto objeto, negro
+
+	const Sphere &obj = spheres[id];
+
+	// si el rayo de cámara toca directamente un emisor, se regresa su emisión
+	if (!isBlack(obj.ke))
+		return obj.ke;
+
+	Point x = r.o + r.d * t;
+	Vector n = (x - obj.p).normalize();
+
+	Vector s, tang;
+	buildBasis(n, s, tang);
+
+	double xi1 = erand48(Xi);
+	double xi2 = erand48(Xi);
+	double phi = 2 * PI * xi2;
+	double cosTheta = sqrt(1 - xi1);
+	double pdf = cosTheta / PI;
+	double sin2 = 1.0 - cosTheta * cosTheta;
+	double sinTheta = sin2 > 0.0 ? sqrt(sin2) : 0.0;
+	Vector wi = s * (sinTheta * cos(phi)) + tang * (sinTheta * sin(phi)) + n * cosTheta;
+
+	double tShadow; int idShadow = 0;
+	Color Le;
+	if (intersect(Ray(x, wi), tShadow, idShadow))
+		Le = spheres[idShadow].ke;
+
+	Color fr = obj.c * (1.0 / PI);
+	double cosThetaN = n.dot(wi);
+	Color mcTerm = fr.mult(Le) * (cosThetaN / pdf);
+
+	return mcTerm + pointLightTerm(x, n, obj.c);
+}
+
+// Modos "arealight"/"solidangle": RF-3 — por cada muestra, itera TODAS las fuentes de
+// área con el método elegido y SUMA sus contribuciones, más el término determinista de
+// cada puntual (sin selección aleatoria de fuente, sin dividir entre el número de luces).
+Color shadeImportance(const Ray &r, unsigned short *Xi, EstimatorMode mode) {
+	double t; int id = 0;
+	if (!intersect(r, t, id))
+		return Color();
+
+	const Sphere &obj = spheres[id];
+	if (!isBlack(obj.ke))
+		return obj.ke;
+
+	Point x = r.o + r.d * t;
+	Vector n = (x - obj.p).normalize();
+
+	Color value;
+	for (size_t k = 0; k < areaLightIdx.size(); k++) {
+		int lightIdx = areaLightIdx[k];
+		const Sphere &light = spheres[lightIdx];
+		if (mode == MODE_AREALIGHT)
+			value = value + sampleAreaLight(light, x, n, obj.c, Xi);
+		else
+			value = value + sampleSolidAngle(light, lightIdx, x, n, obj.c, Xi);
+	}
+	value = value + pointLightTerm(x, n, obj.c);
+	return value;
+}
 
 int main(int argc, char *argv[]) {
 	int w = 1024, h = 768; // image resolution
 
-	// CLI: ./rt <sampler|point> <spp>  (spp no aplica en modo "point")
-	const char *samplerName = argc > 1 ? argv[1] : "cosinehemi";
+	// CLI (RF-4): ./rt <modo> <spp> <escena>
+	// modo   ∈ {arealight, solidangle, coshemi}
+	// escena ∈ {1L, 2A1P}
+	const char *modeName = argc > 1 ? argv[1] : "coshemi";
 	int spp = argc > 2 ? atoi(argv[2]) : 32;
-	bool pointMode = strcmp(samplerName, "point") == 0;
+	const char *sceneName = argc > 3 ? argv[3] : "1L";
 
-	if (strcmp(samplerName, "uniformsphere") == 0)
-		samplerType = SAMPLER_UNIFORM_SPHERE;
-	else if (strcmp(samplerName, "uniformhemi") == 0)
-		samplerType = SAMPLER_UNIFORM_HEMI;
+	if (strcmp(modeName, "arealight") == 0)
+		estimatorMode = MODE_AREALIGHT;
+	else if (strcmp(modeName, "solidangle") == 0)
+		estimatorMode = MODE_SOLIDANGLE;
 	else
-		samplerType = SAMPLER_COSINE_HEMI;
+		estimatorMode = MODE_COSHEMI;
 
-	buildScene(pointMode);
+	SceneType scene = (strcmp(sceneName, "2A1P") == 0) ? SCENE_2A1P : SCENE_1L;
+	buildScene(scene);
 
 	// fija la posicion de la camara y la dirección en que mira
 	Ray camera( Point(0, 11.2, 214), Vector(0, -0.042612, -1).normalize() );
@@ -306,17 +385,16 @@ int main(int argc, char *argv[]) {
 			Vector cameraRayDir = cx * ( double(x)/w - .5) + cy * ( double(y)/h - .5) + camera.d;
 			Ray primaryRay( camera.o, cameraRayDir.normalize() );
 
-			// modo puntual (phase-02): 1 rayo por pixel, sin MC; modos MC (phase-01):
-			// promediar N muestras del estimador Monte Carlo
-			Color pixelValue;
-			if (pointMode) {
-				pixelValue = shadePoint(primaryRay);
-			} else {
-				Color accum;
-				for (int sample = 0; sample < spp; sample++)
-					accum = accum + shade(primaryRay, Xi);
-				pixelValue = accum * (1.0 / spp);
+			// promediar N muestras del estimador Monte Carlo (RF-3: cada muestra ya
+			// suma todas las fuentes de la escena)
+			Color accum;
+			for (int sample = 0; sample < spp; sample++) {
+				Color s = (estimatorMode == MODE_COSHEMI)
+					? shadeCosHemi(primaryRay, Xi)
+					: shadeImportance(primaryRay, Xi, estimatorMode);
+				accum = accum + s;
 			}
+			Color pixelValue = accum * (1.0 / spp);
 
 			// limitar los tres valores de color del pixel a [0,1] (despues de promediar)
 			pixelColors[idx] = Color(clamp(pixelValue.x), clamp(pixelValue.y), clamp(pixelValue.z));
@@ -325,7 +403,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr,"\n");
 
-	FILE *f = fopen(pointMode ? "image-plight.ppm" : "image.ppm", "w");
+	FILE *f = fopen("image.ppm", "w");
 	// escribe cabecera del archivo ppm, ancho, alto y valor maximo de color
 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
 	for (int p = 0; p < w * h; p++)
