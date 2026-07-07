@@ -71,22 +71,39 @@ VERIFY="make"
 echo "→ gate: ${VERIFY}"
 
 # ── 6. Lanzar la corrida (cwd = start/) ──────────────────────────────────────
+# VERBOSE=1     → añade --stream: ves la respuesta del modelo en vivo en el terminal.
+#                 ⚠ Con LM Studio viejo los turnos streameados reportan 0 tokens —
+#                 úsalo para depurar, NO para celdas oficiales.
+# TIMEOUT_MIN=N → freno duro de la celda (default 30 min): corta loops desbocados
+#                 antes de que cocinen la máquina.
 cd "${ROOT}/start"
-set +e
+TIMEOUT_MIN="${TIMEOUT_MIN:-30}"
 if [ "${METHOD}" = "host" ]; then
-  aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
-    --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+  CMD=(aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code --cwd "${ROOT}/start")
 else
   case "${COND}" in
     c0-bare)         FLAGS=(--bare) ;;
     c2-memory)       FLAGS=() ;;
     c2-orchestrator) FLAGS=(--model lmstudio --mcp) ;;
   esac
-  aitl run "${PROMPT}" --project aitl-raytracer "${FLAGS[@]+"${FLAGS[@]}"}" \
-    --verify-cmd "${VERIFY}" </dev/null 2>&1 | tee "${LOG}"
+  CMD=(aitl run "${PROMPT}" --project aitl-raytracer "${FLAGS[@]+"${FLAGS[@]}"}" --verify-cmd "${VERIFY}")
+  if [ "${VERBOSE:-0}" = "1" ]; then
+    CMD+=(--stream)
+    echo "⚠ VERBOSE: --stream activo — la respuesta del modelo se ve en vivo, pero los"
+    echo "  tokens pueden reportarse en 0 con LM Studio viejo (no usar en celdas oficiales)."
+  fi
 fi
-RC=$?
+echo "→ modelo activo: $(aitl models 2>/dev/null | grep -- '← activo' | sed 's/^ *//' || true)"
+echo "→ ejecutando (tope ${TIMEOUT_MIN} min): ${CMD[0]} ${CMD[1]:+«prompt de la spec»} ${CMD[*]:2}"
+echo "→ salida en vivo del lado servidor: ventana Developer/Server de LM Studio"
+set +e
+timeout --foreground "$((TIMEOUT_MIN * 60))" "${CMD[@]}" </dev/null 2>&1 | tee "${LOG}"
+RC=${PIPESTATUS[0]}
 set -e
+if [ "${RC}" = "124" ]; then
+  echo "⚠ TIMEOUT: la celda superó ${TIMEOUT_MIN} min y fue cortada."
+  echo "  Si era esperado, relanza con TIMEOUT_MIN=60 (o más). La corrida parcial queda en Mongo."
+fi
 
 # ── 7. Extraer run_id y recolectar métricas ──────────────────────────────────
 RUN_ID="$(grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "${LOG}" | tail -1 || true)"

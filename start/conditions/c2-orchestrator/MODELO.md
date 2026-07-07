@@ -27,6 +27,29 @@ fidelidad de las tool calls, con footprint razonable. Registrar el modelo usado 
 corrida (columna `modelo` de la hoja de métricas) — es además la palanca de **H9/M59**
 (portabilidad multi-modelo: orquestador local + sub-agentes Claude).
 
+## ⚠ Hallazgo de runtime (2026-07-06) — el distill queda DESCARTADO
+
+La primera corrida real con `nemotron-orchestrator-8b-deepseek-v3.2-speciale-distill`
+(log LM Studio, celda F0×c0-bare) lo descalifica con evidencia:
+
+1. **Razonamiento invisible desbocado**: generó 2,427 `reasoning_tokens` con `content`
+   vacío y **cero tool calls**, a ~20 tok/s durante minutos — la máquina se
+   sobrecalentó sin que el terminal mostrara nada.
+2. **Contabilidad de tokens rota**: la usage reportó `prompt_tokens: 0,
+   completion_tokens: 0` (todo quedó en `completion_tokens_details.reasoning_tokens`)
+   — inaceptable para un experimento cuyas métricas son justamente los tokens (M2–M4,
+   M26–M29).
+
+**Elección operativa vigente** (ids exactos de LM Studio):
+
+| Rol | Modelo | Por qué |
+|---|---|---|
+| Agente de trabajo (c0-bare, c2-memory — escribe el C++) | `qwen/qwen3-4b-2507` | instruct sin trazas de razonamiento, tool-calling sólido, 2.33 GB — el más frío; alternativa: `qwen2.5-coder-7b-instruct` si el 4B se queda corto |
+| Orquestador (c2-orchestrator) | `nemotron-orchestrator-8b` (build sin distill, Q3) o `qwen/qwen3-4b-2507` | mantiene el entrenamiento de orquestación SIN el razonamiento desbocado del distill; validar en la primera celda que usage reporte tokens > 0 |
+
+Mitigaciones ya en `run-cell.sh`: `TIMEOUT_MIN` (freno duro, default 30 min) y
+`VERBOSE=1` (streaming de la respuesta al terminal para depurar).
+
 ## Configuración
 
 ```bash
