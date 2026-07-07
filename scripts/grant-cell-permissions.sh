@@ -39,17 +39,29 @@ DENY = [
     "Bash(*objective*)",
 ]
 
+# Herramientas del MCP aitl-js que el CLAUDE.md de cada plantilla C2 instruye usar
+# (list_decisions/search_memory antes de diseñar, record_decision/write_memory al
+# cerrar). Sin esto, cada llamada MCP choca con un prompt de permiso que la corrida
+# headless (stdin cerrado) no puede responder y queda denegada — rompiendo la
+# condición C2 entera (el harness no puede usar su propio conocimiento).
+MCP_ALLOW = [
+    "mcp__aitl-js__list_decisions",
+    "mcp__aitl-js__search_memory",
+    "mcp__aitl-js__record_decision",
+    "mcp__aitl-js__write_memory",
+]
+
 for c in ["c0-bare", "c2-memory", "c2-orchestrator"]:
     p = f"start/conditions/{c}/.claude/settings.json"
     s = json.load(open(p))
     perms = s.setdefault("permissions", {})
     perms["defaultMode"] = "acceptEdits"
-    perms["allow"] = ALLOW
+    perms["allow"] = ALLOW + (MCP_ALLOW if c != "c0-bare" else [])
     perms["deny"] = DENY
     with open(p, "w") as f:
         json.dump(s, f, indent=2, ensure_ascii=False)
         f.write("\n")
-    print(f"✓ {p}: {len(ALLOW)} allow / {len(DENY)} deny, defaultMode=acceptEdits")
+    print(f"✓ {p}: {len(perms['allow'])} allow / {len(DENY)} deny, defaultMode=acceptEdits")
 EOF
 
 echo "→ listo: revisa con 'git diff start/conditions' y avisa para relanzar las celdas"
