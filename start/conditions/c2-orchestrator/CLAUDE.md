@@ -27,13 +27,14 @@ NO uses `raytracer`, `rt` ni otra variante. El ledger de ADRs es PROPIO (desde 0
 
 ## Reglas de trabajo
 
-- **Lee la spec de la fase antes de escribir código** (`specs/fase-N/spec.md`). Si la
-  spec no existe o está vacía, DETENTE y pídela.
+- **Lee la spec de la fase antes de escribir código** (`sdd/phase-0N/spec.md`, p. ej.
+  `sdd/phase-00/spec.md`). Si la spec no existe o está vacía, DETENTE y pídela.
 - Implementa exactamente lo que la spec define — no toques escena, cámara ni parámetros
   que la spec no pida cambiar.
 - Todo es **C++** compilado con `make`; algunos programas son **terminales
   interactivos** — al automatizar su ejecución alimenta stdin por pipe/heredoc, nunca
   esperes un TTY.
 - `make` sin errores (ni warnings nuevos con `-Wall`); si la fase trae `check.sh`,
-  `make && ./check.sh` debe quedar verde.
-- Las imágenes renderizadas van a `out/` (gitignored).
+  `make && bash sdd/phase-0N/check.sh` debe quedar verde.
+- El render sale como `image.ppm` en la raíz del proyecto (gitignored); renómbralo
+  como pida la spec (p. ej. `image-normal.ppm`).

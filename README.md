@@ -29,13 +29,55 @@ Cada corrida deja: fila en `data/metricas.csv`, crudo en `data/runs/*.runshow.tx
 log en `data/logs/` (gitignored) y el markdown [`RESUMEN-METRICAS.md`](RESUMEN-METRICAS.md)
 regenerado con la matriz por celda y los deltas C0−C2 (M49–M51).
 
+Al terminar cada celda: revisa la fila del CSV (tokens > 0, status), rellena a mano
+las columnas de juicio (`verify_1er_intento`, `imagen_ok`, `adr`, `notas`) y commitea
+`data/` + `start/` + `RESUMEN-METRICAS.md` **en la rama de la celda** (`fase-N/<cond>`).
+`main` nunca lleva implementación. Corridas inválidas: `aitl intervene` + nota en el
+CSV — jamás se borran.
+
+## Gate objetivo por fase (`check.sh`)
+
+Si existe `start/sdd/phase-0N/check.sh`, `run-cell.sh` convierte el verify de la
+celda en `make && bash sdd/phase-0N/check.sh` — **idéntico en las tres condiciones**
+(misma vara para C0 y C2). Sin `check.sh` el gate es solo `make`, y un `status: done`
+NO acredita la tarea (F0 lo demostró: el `rt.cpp` base compila solo y el loop declaró
+éxito sin tocar el código).
+
+**Phase 00** (`check.sh` + `probe.py`, ~1 s en total) implementa los 5 criterios de
+aceptación de la spec:
+
+1. Compila — el `make` del verify.
+2. `./rt normal` — 14 sondas de píxel (5 paredes + 3 puntos por esfera) contra el
+   color **analítico exacto**: escena y cámara están fijas, así que `probe.py`
+   calcula el valor esperado con la misma aritmética que `rt.cpp` (tolerancia
+   ±10/255 por canal tras gamma, la de la spec).
+3. `./rt distance` — gris real (r==g==b), gradiente no saturado (≥16 niveles),
+   monótono respecto a t, y siluetas de las 3 esferas distinguibles de la pared
+   trasera (Δ≥20).
+4. Determinismo — dos corridas consecutivas y `OMP_NUM_THREADS=1` vs default,
+   byte a byte (`cmp`).
+5. `delete[]` conservado y `#pragma omp parallel` presente (RF-4).
+
+Toda ejecución de `./rt` va con stdin cerrado (`</dev/null`): los programas
+interactivos nunca esperan TTY (regla de validez 6). Para correrlo a mano, desde
+`start/`:
+
+```bash
+make && bash sdd/phase-00/check.sh
+```
+
+Herramienta del investigador: `python3 sdd/phase-00/probe.py --map` imprime la tabla
+analítica (qué objeto golpea cada sonda, su t y el RGB esperado). El gate se validó
+contra tres implementaciones: base sin tocar → falla; correcta → pasa; bug sutil
+(normal sin normalizar) → falla con mensaje puntual.
+
 ## Las tres condiciones (mismo prompt, mismo commit de partida)
 
 | Condición | Tratamiento | CLAUDE.md instalado | MCP | hydrate | Ejecución |
 |---|---|---|---|---|---|
 | **c0-bare** | ninguno (baseline) | no menciona el harness | ✗ | ✗ | `aitl run --bare` |
 | **c2-memory** | harness como conocimiento (memoria+ADRs+skills) | instruye leer el MCP | ✓ | ✓ | `aitl run` |
-| **c2-orchestrator** | harness Max-Capacity: loop orquesta y delega en sub-agentes | rol orquestador/sub-agente | ✓ | ✓ | `aitl run --model lmstudio --mcp` — modelo: **Nemotron Orchestrator 8B DeepSeek Q4_K_S** ([evaluación](start/conditions/c2-orchestrator/MODELO.md)) |
+| **c2-orchestrator** | harness Max-Capacity: loop orquesta y delega en sub-agentes | rol orquestador/sub-agente | ✓ | ✓ | `aitl run --model lmstudio --mcp` — modelo local de LM Studio; el distill Nemotron quedó **descartado** ([evaluación](start/conditions/c2-orchestrator/MODELO.md)), F0 corre con `qwen/qwen3-4b-2507` (mismo modelo que las otras condiciones) |
 
 Las tres conservan el hook `capture-session` (instrumento de medición, no tratamiento).
 Detalle: [`start/conditions/README.md`](start/conditions/README.md).
