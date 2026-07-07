@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <omp.h>
+#include <vector>
 
 static const double PI = 3.14159265358979323846;
 
@@ -75,18 +76,41 @@ public:
 	}
 };
 
-// Escena (phase-01): paredes+suelo+techo difusos, dos esferas difusas y un emisor esférico
-Sphere spheres[] = {
-	//              radio  posicion                       albedo              emision
-	Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25), Color()),          // pared izq
-	Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75), Color()),          // pared der
-	Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.25, .75, .25), Color()),          // pared detras
-	Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.25, .75, .75), Color()),          // suelo
-	Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .25), Color()),          // techo
-	Sphere(16.5, Point(-23, -24.3, -34.6), Color(.2, .3, .4),    Color()),          // esfera abajo-izq
-	Sphere(16.5, Point(23, -24.3, -3.6),   Color(.4, .3, .2),    Color()),          // esfera abajo-der
-	Sphere(10.5, Point(0, 24.3, 0),        Color(1, 1, 1),       Color(10, 10, 10)) // esfera arriba (emisor)
+// Escena: paredes+suelo+techo difusos y dos esferas difusas (comunes a todos los modos).
+// El emisor esférico (phase-01) y la fuente puntual (phase-02) son mutuamente excluyentes
+// y se agregan en buildScene() según el modo.
+std::vector<Sphere> spheres;
+
+// RF-3 (phase-02): la fuente puntual se representa como lista aparte, NO como esfera de
+// spheres[] — así ningún rayo (cámara o sombra) la intersecta jamás y el techo bajo la
+// luz queda "sin esfera visible" según pide el criterio de aceptación.
+class PointLight
+{
+public:
+	Point p;  // posicion
+	Color I;  // intensidad radiante
+
+	PointLight(Point p_, Color I_) : p(p_), I(I_) {}
 };
+std::vector<PointLight> pointLights;
+
+// arma la escena: geometría base siempre presente; agrega el emisor esférico (modos MC
+// de la phase-01) o la fuente puntual (modo "point" de la phase-02), nunca ambos
+void buildScene(bool pointMode) {
+	//                    radio  posicion                       albedo              emision
+	spheres.push_back(Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25), Color()));          // pared izq
+	spheres.push_back(Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75), Color()));          // pared der
+	spheres.push_back(Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.25, .75, .25), Color()));          // pared detras
+	spheres.push_back(Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.25, .75, .75), Color()));          // suelo
+	spheres.push_back(Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .25), Color()));          // techo
+	spheres.push_back(Sphere(16.5, Point(-23, -24.3, -34.6), Color(.2, .3, .4),    Color()));          // esfera abajo-izq
+	spheres.push_back(Sphere(16.5, Point(23, -24.3, -3.6),   Color(.4, .3, .2),    Color()));          // esfera abajo-der
+
+	if (pointMode)
+		pointLights.push_back(PointLight(Point(0, 24.3, 0), Color(4000, 4000, 4000)));
+	else
+		spheres.push_back(Sphere(10.5, Point(0, 24.3, 0), Color(1, 1, 1), Color(10, 10, 10))); // esfera arriba (emisor)
+}
 
 // limita el valor de x a [0,1]
 inline double clamp(const double x) {
@@ -107,7 +131,7 @@ inline int toDisplayValue(const double x) {
 // almacenar en t la distancia sobre el rayo en que sucede la interseccion
 // almacenar en id el indice de spheres[] de la esfera cuya interseccion es mas cercana
 inline bool intersect(const Ray &r, double &t, int &id) {
-	int n = sizeof(spheres) / sizeof(Sphere);
+	int n = (int)spheres.size();
 	t = 1e20;
 	for (int i = 0; i < n; i++) {
 		double d = spheres[i].intersect(r);
@@ -193,13 +217,53 @@ Color shade(const Ray &r, unsigned short *Xi) {
 	return fr.mult(Le) * (cosThetaN / pdf);
 }
 
+// Calcula el valor de color para el rayo dado: iluminación directa determinista con
+// fuentes puntuales (phase-02, RF-1/RF-2). Sin Monte Carlo: un término cerrado por
+// fuente, sombras duras por rayo de sombra, 1 muestra por pixel (sin jitter).
+Color shadePoint(const Ray &r) {
+	double t;
+	int id = 0;
+	if (!intersect(r, t, id))
+		return Color(); // el rayo no intersecto objeto, negro
+
+	const Sphere &obj = spheres[id];
+	Point x = r.o + r.d * t;
+	Vector n = (x - obj.p).normalize();
+
+	Color L;
+	for (size_t i = 0; i < pointLights.size(); i++) {
+		const PointLight &light = pointLights[i];
+
+		Vector toLight = light.p - x;
+		double r2 = toLight.dot(toLight);
+		double dist = sqrt(r2);
+		Vector w = toLight * (1.0 / dist);
+
+		double cosTheta = n.dot(w);
+		if (cosTheta <= 0.0)
+			continue; // fuente detras de la superficie: contribucion 0
+
+		// rayo de sombra: si algo bloquea antes de llegar a la fuente, contribucion 0
+		// (epsilon 1e-4 de la fase 0 para evitar acne de sombra)
+		double tShadow;
+		int idShadow = 0;
+		if (intersect(Ray(x, w), tShadow, idShadow) && tShadow < dist - 1e-4)
+			continue;
+
+		Color fr = obj.c * (1.0 / PI);
+		L = L + fr.mult(light.I) * (cosTheta / r2);
+	}
+	return L;
+}
+
 
 int main(int argc, char *argv[]) {
 	int w = 1024, h = 768; // image resolution
 
-	// CLI: ./rt <sampler> <spp>
+	// CLI: ./rt <sampler|point> <spp>  (spp no aplica en modo "point")
 	const char *samplerName = argc > 1 ? argv[1] : "cosinehemi";
 	int spp = argc > 2 ? atoi(argv[2]) : 32;
+	bool pointMode = strcmp(samplerName, "point") == 0;
 
 	if (strcmp(samplerName, "uniformsphere") == 0)
 		samplerType = SAMPLER_UNIFORM_SPHERE;
@@ -207,6 +271,8 @@ int main(int argc, char *argv[]) {
 		samplerType = SAMPLER_UNIFORM_HEMI;
 	else
 		samplerType = SAMPLER_COSINE_HEMI;
+
+	buildScene(pointMode);
 
 	// fija la posicion de la camara y la dirección en que mira
 	Ray camera( Point(0, 11.2, 214), Vector(0, -0.042612, -1).normalize() );
@@ -240,11 +306,17 @@ int main(int argc, char *argv[]) {
 			Vector cameraRayDir = cx * ( double(x)/w - .5) + cy * ( double(y)/h - .5) + camera.d;
 			Ray primaryRay( camera.o, cameraRayDir.normalize() );
 
+			// modo puntual (phase-02): 1 rayo por pixel, sin MC; modos MC (phase-01):
 			// promediar N muestras del estimador Monte Carlo
-			Color accum;
-			for (int sample = 0; sample < spp; sample++)
-				accum = accum + shade(primaryRay, Xi);
-			Color pixelValue = accum * (1.0 / spp);
+			Color pixelValue;
+			if (pointMode) {
+				pixelValue = shadePoint(primaryRay);
+			} else {
+				Color accum;
+				for (int sample = 0; sample < spp; sample++)
+					accum = accum + shade(primaryRay, Xi);
+				pixelValue = accum * (1.0 / spp);
+			}
 
 			// limitar los tres valores de color del pixel a [0,1] (despues de promediar)
 			pixelColors[idx] = Color(clamp(pixelValue.x), clamp(pixelValue.y), clamp(pixelValue.z));
@@ -253,7 +325,7 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr,"\n");
 
-	FILE *f = fopen("image.ppm", "w");
+	FILE *f = fopen(pointMode ? "image-plight.ppm" : "image.ppm", "w");
 	// escribe cabecera del archivo ppm, ancho, alto y valor maximo de color
 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
 	for (int p = 0; p < w * h; p++)

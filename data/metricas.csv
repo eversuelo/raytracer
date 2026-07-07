@@ -1,2 +1,6 @@
 fecha,fase,cond,metodo,run_id,status,duration_ms,iters,tool_calls,tokens_input,tokens_output,tokens_total,gate_denials,supervision_min,verify_1er_intento,imagen_ok,adr,notas
 2026-07-07T12:10:10-06:00,0,c0-bare@sonnet,host,a6012b9d-dd36-4eb9-b348-29cec5581595,done,99453,18,0,800517,6306,806823,0,0,,,,
+2026-07-07T12:32:50-06:00,1,c0-bare@sonnet,host,1d1901ac-1c29-4ae5-bf94-c556d9b73a32,done,40816,6,0,167326,2350,169676,0,0,,,,
+2026-07-07T12:37:19-06:00,2,c0-bare@sonnet,host,5d70588e-a8b0-40a6-9e16-9886e690eb1f,done,233047,32,0,1666718,19121,1685839,0,0,,,,
+2026-07-07T12:45:23-06:00,3,c0-bare@sonnet,host,e3455874-94bd-4ca4-8afc-206480b02278,done,448525,25,0,1764597,40683,1805280,0,0,,,,
+2026-07-07T12:51:18-06:00,4,c0-bare@sonnet,host,59d61e68-273b-46df-b452-98a842bd8b77,done,335714,31,0,2250212,32413,2282625,0,0,,,,

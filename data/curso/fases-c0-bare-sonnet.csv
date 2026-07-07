@@ -3,3 +3,6 @@ fase,run_id,status,gate,dur_s
 1,,done,fail,32
 1,,done,fail,31
 1,1d1901ac-1c29-4ae5-bf94-c556d9b73a32,done,ok,43
+2,5d70588e-a8b0-40a6-9e16-9886e690eb1f,done,ok,234
+3,e3455874-94bd-4ca4-8afc-206480b02278,done,ok,450
+4,59d61e68-273b-46df-b452-98a842bd8b77,done,ok,338
