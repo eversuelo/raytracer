@@ -61,15 +61,17 @@ Recorrer `spheres[]`, quedarse con la intersección válida **más cercana**; es
 Con el hit más cercano: punto `x = r.o + r.d·t`; normal `n = (x − obj.p).normalize()`.
 Dos modos de color (seleccionables por argumento de línea de comandos, p. ej.
 `./rt normal` y `./rt distance`, o por constante documentada si se prefiere):
-- **Modo normales**: `color = (n + Vector(1,1,1)) * 0.5` — mapea cada componente de
-  [−1,1] a [0,1]. Verificación rápida contra la referencia: pared izquierda
-  (n = (1,0,0)) → salmón (1,.5,.5); derecha → azul verdoso (0,.5,.5); techo →
-  magenta (.5,0,.5); suelo → verde claro (.5,1,.5); pared trasera → lavanda (.5,.5,1).
-- **Modo distancia**: gris monótono en función de `t` (mismo valor en RGB). El mapeo
-  exacto queda a elección del implementador pero debe (a) ser monótono, (b) estar
-  documentado en un comentario junto a la fórmula, y (c) reproducir cualitativamente
-  la referencia: las tres esferas y las paredes distinguibles, sin saturar todo a
-  blanco o negro.
+- **Modo normales**: `color = obj.c + n` — suma directa del color de la esfera y la
+  normal, SIN reescalar (el clamp del pipeline recorta a [0,1]); es la convención de
+  los renders de referencia del curso. Verificación rápida tras gamma: pared
+  izquierda (255,136,136); derecha (0,136,224); trasera (224,224,255); suelo
+  (224,255,224); techo (224,0,224); las tres esferas se ven blancas con franja cian
+  a la izquierda y franja magenta abajo.
+- **Modo distancia**: gris `g = (t − 144.676098) / (304.110891 − 144.676098)`,
+  devolver `Color(g,g,g)` (mismo valor en RGB; fuera de [0,1] recorta el clamp).
+  Mapeo lineal monótono acotado a los t extremos visibles de la escena; reproduce
+  la referencia: pared trasera casi blanca, esferas en gris medio, esquinas
+  cercanas oscuras.
 
 **RF-4 — Paralelización** (bucle de píxeles en `main`).
 `#pragma omp parallel for` sobre el bucle exterior (renglones), cada hilo computa
@@ -85,10 +87,10 @@ cualquier visor PPM.
 ## Criterios de aceptación (gate objetivo)
 
 1. `make` compila sin errores (g++ −O3 −fopenmp).
-2. `./rt normal` produce un `image.ppm` de 1024×768 cuyos colores de pared coinciden
-   con la tabla de RF-3 (muestrear el píxel central de cada pared: tolerancia ±10/255
-   por canal tras gamma) y las tres esferas aparecen con su gradiente cian/blanco/rosa
-   en las posiciones de `image-normalcolor.jpg`.
+2. `./rt normal` produce un `image.ppm` de 1024×768 cuyos colores coinciden con
+   `obj.c + n` de RF-3 (sondas de `probe.py`: tolerancia ±10/255 por canal tras
+   gamma) y las tres esferas aparecen blancas con franjas cian/magenta en las
+   posiciones de `image-normalcolor.jpg`.
 3. `./rt distance` produce un gris monótono consistente con `image-distance.jpg`
    (siluetas de las tres esferas visibles contra la pared trasera).
 4. Determinismo: dos corridas consecutivas producen archivos idénticos (`cmp` exacto);
@@ -102,14 +104,29 @@ muestreo — nada de eso entra aquí. Phase 00 termina cuando la geometría se v
 
 ## Prompt de tarea (idéntico para C0 y C2)
 
-> Completa los cuatro bloques marcados `PROYECTO 1` en `rt.cpp` siguiendo la spec de
-> `sdd/phase-00/spec.md`: (1) `Sphere::intersect` con la fórmula de la spec y
-> épsilon 1e−4; (2) `intersect(r, t, id)` devolviendo el hit más cercano de la escena;
-> (3) `shade` con los dos modos de depuración —normales `(n+1)*0.5` y distancia en
-> gris monótono— seleccionables por argumento; (4) paraleliza el bucle de renglones
-> con OpenMP manteniendo la imagen determinista. No modifiques la escena, la cámara,
-> la resolución ni el formato de salida. Verifica contra las imágenes de referencia
-> del directorio de la spec y los criterios de aceptación antes de dar por terminado.
+> Completa los cuatro bloques marcados `PROYECTO 1` en `rt.cpp`.
+> (1) `Sphere::intersect`: con `oc = o − p`, `b = oc·d`, `det = b² − (oc·oc − r²)`;
+> si `det < 0` devuelve `0.0`; si no, devuelve la menor raíz `t = −b ± √det` que sea
+> mayor que `1e−4`, o `0.0` si ninguna lo es.
+> (2) `intersect(r, t, id)`: recorre `spheres[]` y deja en `t`/`id` la intersección
+> válida más cercana; devuelve `true`/`false`.
+> (3) `shade` con dos modos seleccionables por argumento de línea de comandos
+> (`./rt normal` y `./rt distance`). Con `x = r.o + r.d·t` y
+> `n = (x − obj.p).normalize()`:
+>   - `normal`: el color es la suma directa `obj.c + n` — SIN reescalar con
+>     `(n+1)*0.5`; el clamp del pipeline recorta a [0,1]. Autoverificación tras
+>     gamma: pared izquierda (255,136,136), derecha (0,136,224), trasera
+>     (224,224,255), suelo (224,255,224), techo (224,0,224); las tres esferas se ven
+>     blancas con franja cian a la izquierda y franja magenta abajo.
+>   - `distance`: gris `g = (t − 144.676098) / (304.110891 − 144.676098)`, devuelve
+>     `Color(g, g, g)` (fuera de [0,1] lo recorta el clamp): pared trasera casi
+>     blanca, esferas en gris medio, esquinas cercanas oscuras.
+> (4) Paraleliza el bucle de renglones con OpenMP manteniendo la imagen determinista
+> (idéntica bit a bit con 1 o N hilos).
+> No modifiques la escena, la cámara, la resolución (1024×768) ni la salida
+> (`image.ppm` P3 ASCII, gamma 2.2). Genera `image-normal.ppm` e
+> `image-distance.ppm` (copia del `image.ppm` de cada modo). Antes de dar por
+> terminado, `make && bash sdd/phase-00/check.sh` debe quedar verde.
 
 ## Entregables
 

@@ -4,9 +4,9 @@
 Uso: python3 sdd/phase-00/probe.py <image-normal.ppm> <image-distance.ppm>
 
 El modo normales está totalmente determinado por la spec (escena y cámara fijas,
-color = (n+1)*0.5, gamma 2.2), así que el valor esperado de cada sonda se calcula
-aquí de forma analítica con la misma aritmética doble que rt.cpp. Tolerancia:
-±10/255 por canal tras gamma (criterio 2).
+color = obj.c + n como en los renders de referencia del curso, gamma 2.2), así que
+el valor esperado de cada sonda se calcula aquí de forma analítica con la misma
+aritmética doble que rt.cpp. Tolerancia: ±10/255 por canal tras gamma (criterio 2).
 
 El modo distancia deja el mapeo al implementador (RF-3), así que se verifica solo
 lo que la spec exige: gris (r==g==b), gradiente real (no binario), monotonía en t
@@ -22,16 +22,16 @@ TOL = 10          # criterio 2: ±10/255 por canal
 SIL_MIN = 20      # criterio 3: contraste mínimo esfera vs pared trasera
 GRADIENT_MIN = 16 # criterio 3: niveles de gris distintos (no saturado a 2 tonos)
 
-# Escena de la spec (radio, centro) — índices como en spheres[] de rt.cpp
+# Escena de la spec (radio, centro, color) — índices como en spheres[] de rt.cpp
 SPH = [
-    (1e5, (-1e5 - 49, 0, 0)),      # 0 pared izquierda
-    (1e5, (1e5 + 49, 0, 0)),       # 1 pared derecha
-    (1e5, (0, 0, -1e5 - 81.6)),    # 2 pared trasera
-    (1e5, (0, -1e5 - 40.8, 0)),    # 3 suelo
-    (1e5, (0, 1e5 + 40.8, 0)),     # 4 techo
-    (16.5, (-23, -24.3, -34.6)),   # 5 esfera abajo-izq
-    (16.5, (23, -24.3, -3.6)),     # 6 esfera abajo-der
-    (10.5, (0, 24.3, 0)),          # 7 esfera arriba
+    (1e5, (-1e5 - 49, 0, 0), (.75, .25, .25)),      # 0 pared izquierda
+    (1e5, (1e5 + 49, 0, 0), (.25, .25, .75)),       # 1 pared derecha
+    (1e5, (0, 0, -1e5 - 81.6), (.75, .75, .75)),    # 2 pared trasera
+    (1e5, (0, -1e5 - 40.8, 0), (.75, .75, .75)),    # 3 suelo
+    (1e5, (0, 1e5 + 40.8, 0), (.75, .75, .75)),     # 4 techo
+    (16.5, (-23, -24.3, -34.6), (.999, .999, .999)),  # 5 esfera abajo-izq
+    (16.5, (23, -24.3, -3.6), (.999, .999, .999)),    # 6 esfera abajo-der
+    (10.5, (0, 24.3, 0), (1.0, 1.0, 1.0)),            # 7 esfera arriba
 ]
 NAMES = ["pared izquierda", "pared derecha", "pared trasera", "suelo", "techo",
          "esfera abajo-izq", "esfera abajo-der", "esfera arriba"]
@@ -61,7 +61,7 @@ def ray_dir(px, py):
 
 def hit(d):
     tmin, imin = 1e20, -1
-    for i, (r, p) in enumerate(SPH):
+    for i, (r, p, _c) in enumerate(SPH):
         oc = (CAM_O[0] - p[0], CAM_O[1] - p[1], CAM_O[2] - p[2])
         b = oc[0] * d[0] + oc[1] * d[1] + oc[2] * d[2]
         det = b * b - (oc[0] ** 2 + oc[1] ** 2 + oc[2] ** 2 - r * r)
@@ -84,9 +84,9 @@ def expected_normal(px, py):
     d = ray_dir(px, py)
     t, i = hit(d)
     x = tuple(CAM_O[j] + d[j] * t for j in range(3))
-    r, p = SPH[i]
+    r, p, c = SPH[i]
     n = norm((x[0] - p[0], x[1] - p[1], x[2] - p[2]))
-    rgb = tuple(disp((n[j] + 1.0) * 0.5) for j in range(3))
+    rgb = tuple(disp(c[j] + n[j]) for j in range(3))
     return rgb, t, i
 
 
