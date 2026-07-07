@@ -24,6 +24,16 @@ LOG="${LOG_DIR}/fase${FASE}-${COND}-${STAMP}.log"
 
 die() { echo "✗ $*" >&2; exit 1; }
 
+# ── Preflight: hace falta un backend de modelo (salvo método host) ───────────
+if [ "${METHOD}" != "host" ] && aitl models 2>&1 | grep -q "Ningún LLM configurado"; then
+  die "ningún LLM configurado para 'aitl run'. Opciones:
+  - export ANTHROPIC_API_KEY=sk-ant-...          (API de Anthropic)
+  - lms server start && export LMSTUDIO_MODEL=…  (LM Studio local; obligatorio para c2-orchestrator)
+  - o corre esta celda con Claude Code como agente (no necesita key):
+      scripts/run-cell.sh ${FASE} ${COND} host
+  Verifica con: aitl models"
+fi
+
 # ── Validez experimental ─────────────────────────────────────────────────────
 [ -f "${SPEC}" ] || die "no existe la spec ${SPEC}"
 grep -q "status: approved" "${SPEC}" \

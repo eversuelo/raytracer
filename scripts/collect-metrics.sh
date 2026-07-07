@@ -8,7 +8,15 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_ID="${1:?run_id}"; FASE="${2:?fase}"; COND="${3:?condición}"; METHOD="${4:-loop}"
+
+if [ $# -lt 3 ]; then
+  echo "Uso: scripts/collect-metrics.sh <run_id> <fase 0-5> <condición> [loop|host]" >&2
+  echo "  El run_id es el UUID que imprime 'aitl run' (o búscalo en data/logs/*.log)." >&2
+  exit 1
+fi
+RUN_ID="$1"; FASE="$2"; COND="$3"; METHOD="${4:-loop}"
+echo "${RUN_ID}" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' \
+  || { echo "✗ '${RUN_ID}' no parece un run_id (UUID). Orden: <run_id> <fase> <condición>." >&2; exit 1; }
 CSV="${ROOT}/data/metricas.csv"
 RAW_DIR="${ROOT}/data/runs"; mkdir -p "${RAW_DIR}"
 RAW="${RAW_DIR}/fase${FASE}-${COND}-${RUN_ID}.runshow.txt"
