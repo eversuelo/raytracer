@@ -1,6 +1,6 @@
 # Resumen de métricas — experimento raytracer (C0 vs C2)
 
-> Generado por `scripts/resumen.sh` el 2026-07-07T12:51:18-06:00 — **no editar a mano**.
+> Generado por `scripts/resumen.sh` el 2026-07-07T12:53:48-06:00 — **no editar a mano**.
 > Fuente: `data/metricas.csv` (última corrida por celda) + crudos en `data/runs/`.
 > Definiciones y reglas de comparación: [`METRICAS.md`](METRICAS.md) (M1–M61).
 
@@ -18,6 +18,7 @@
 | 2 | — | — | — | — | — | — |
 | 3 | — | — | — | — | — | — |
 | 4 | — | — | — | — | — | — |
+| 5 | — | — | — | — | — | — |
 
 ## Recordatorios de validez
 
