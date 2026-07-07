@@ -1,0 +1,9 @@
+node_modules/
+dist/
+out/
+*.ppm
+*.png
+.env
+.mcp.json
+logs/
+.claude/settings.local.json

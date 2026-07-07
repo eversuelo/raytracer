@@ -1,0 +1,28 @@
+# ── Build C++ (el raytracer se compila por celda; solo el código fuente se versiona)
+*.o
+*.out
+start/rt
+start/a.out
+
+# Renders generados por los agentes (las REFERENCIAS de objective/ y start/sdd/ SÍ se versionan)
+out/
+start/*.ppm
+start/*.jpg
+
+# ── Node (substrate TS del laboratorio)
+node_modules/
+*.tsbuildinfo
+
+# ── Secretos y entorno — .mcp.json lleva la URI de Mongo con credenciales
+.mcp.json
+start/.mcp.json
+.env
+.env.*
+!.env.example
+.claude/settings.local.json
+**/.claude/settings.local.json
+
+# ── Logs y temporales
+logs/
+*.log
+data/logs/

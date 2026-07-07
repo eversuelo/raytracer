@@ -1,0 +1,16 @@
+{
+  "enableAllProjectMcpServers": false,
+  "disabledMcpjsonServers": ["aitl-js"],
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aitl capture-session --project aitl-raytracer"
+          }
+        ]
+      }
+    ]
+  }
+}

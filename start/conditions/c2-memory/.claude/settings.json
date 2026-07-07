@@ -1,0 +1,26 @@
+{
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["aitl-js"],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aitl hydrate --project aitl-raytracer --no-vector"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aitl capture-session --project aitl-raytracer"
+          }
+        ]
+      }
+    ]
+  }
+}

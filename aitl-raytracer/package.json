@@ -1,0 +1,21 @@
+{
+  "name": "aitl-raytracer",
+  "version": "0.1.0",
+  "description": "Laboratorio SDD del harness AITL: raytracer en 5 fases (básico → path tracing) bajo condiciones C0/C2.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test \"test/**/*.test.ts\"",
+    "verify": "npm run typecheck && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  }
+}
