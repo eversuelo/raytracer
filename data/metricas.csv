@@ -1,1 +1,5 @@
 fecha,fase,cond,metodo,run_id,status,duration_ms,iters,tool_calls,tokens_input,tokens_output,tokens_total,gate_denials,supervision_min,verify_1er_intento,imagen_ok,adr,notas
+2026-07-07T13:19:15-06:00,0,c2-memory@sonnet,host,16de10c9-ec1b-4e75-8aeb-16b45de6bd54,done,160326,18,0,760579,8915,769494,0,0,,,,
+2026-07-07T13:31:10-06:00,1,c2-memory@sonnet,host,7b4780dc-90a3-43c7-96b6-4909efe597ad,done,690475,41,0,2834629,45479,2880108,0,0,,,,
+2026-07-07T13:36:59-06:00,2,c2-memory@sonnet,host,fabc15cd-9b60-443a-8418-5e505281fca6,done,326018,29,0,1589958,18007,1607965,0,0,,,,
+2026-07-07T13:49:14-06:00,3,c2-memory@sonnet,host,70b39c38-9ee3-4b70-9165-4de5a2e43983,done,692274,32,0,2694271,46337,2740608,0,0,,,,

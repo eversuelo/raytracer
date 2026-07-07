@@ -1,0 +1,59 @@
+{
+  "run_id": "16de10c9-ec1b-4e75-8aeb-16b45de6bd54",
+  "project": "aitl-raytracer",
+  "model": "host:claude-code",
+  "status": "done",
+  "started_at": "2026-07-07T19:16:29.758Z",
+  "ended_at": "2026-07-07T19:19:10.084Z",
+  "duration_ms": 160326,
+  "tokens": {
+    "input": 760579,
+    "output": 8915,
+    "total": 769494
+  },
+  "host_meta": {
+    "cost_usd": 0.6077433999999999,
+    "num_turns": 18,
+    "duration_ms": 153428,
+    "duration_api_ms": 124192,
+    "session_id": "62976b28-e43f-4fa0-a1d3-b2a713d5b1c0",
+    "model": null,
+    "is_error": false,
+    "raw_input_tokens": 30,
+    "cache": {
+      "creation": 42621,
+      "read": 717928
+    }
+  },
+  "spec": false,
+  "iters": 18,
+  "tool_calls": 0,
+  "gate_denials": 0,
+  "human_interventions": {
+    "count": 0,
+    "minutes": 0
+  },
+  "approvals": {
+    "count": 0,
+    "ms": 0
+  },
+  "supervision_minutes": 0,
+  "roles": [],
+  "decision_blocked": false,
+  "review_events": {
+    "review": 0,
+    "role_veto": 0,
+    "deliberation": 0
+  },
+  "event_counts": {
+    "hydrate": 1,
+    "spawn": 1
+  },
+  "hydrate": {
+    "host": "claude-code",
+    "memory": 6,
+    "decisions": 4,
+    "conventions": 0,
+    "repomap": 0
+  }
+}

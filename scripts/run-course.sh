@@ -116,6 +116,14 @@ for FASE in 0 1 2 3 4 5; do
     bash "${ROOT}/scripts/collect-metrics.sh" "${RUN_ID}" "${FASE}" "${CELL}" host || true
   fi
 
+  # Evidencia de la fase junto al .runshow.txt: código + renders (gitignored/sobrescribibles
+  # entre fases, así que se pierden si no se copian aquí)
+  EV_PFX="${ROOT}/data/runs/fase${FASE}-${CELL}-${RUN_ID:-sin-id}"
+  cp start/rt.cpp "${EV_PFX}.rt.cpp" 2>/dev/null || true
+  for F in start/*.ppm; do
+    [ -f "${F}" ] && cp "${F}" "${EV_PFX}.$(basename "${F}")"
+  done
+
   # Commit del avance de la fase en la rama de la celda (renders quedan gitignored)
   git add start/rt.cpp start/Makefile start/CLAUDE.md start/.claude
   git commit -q -m "curso ${CELL}: fase ${FASE} run=${RUN_STATUS} gate=${GATE} (${DUR_S}s, run ${RUN_ID:-sin-id})" || true

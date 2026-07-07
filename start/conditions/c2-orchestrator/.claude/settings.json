@@ -53,7 +53,11 @@
       "Bash(od:*)",
       "Bash(OMP_NUM_THREADS=1 ./rt:*)",
       "Bash(OMP_NUM_THREADS=2 ./rt:*)",
-      "Bash(OMP_NUM_THREADS=4 ./rt:*)"
+      "Bash(OMP_NUM_THREADS=4 ./rt:*)",
+      "mcp__aitl-js__list_decisions",
+      "mcp__aitl-js__search_memory",
+      "mcp__aitl-js__record_decision",
+      "mcp__aitl-js__write_memory"
     ],
     "deny": [
       "Read(../objective/**)",
