@@ -1,6 +1,6 @@
 # Resumen de métricas — experimento raytracer (C0 vs C2)
 
-> Generado por `scripts/resumen.sh` el 2026-07-06T20:41:11-06:00 — **no editar a mano**.
+> Generado por `scripts/resumen.sh` el 2026-07-07T12:10:10-06:00 — **no editar a mano**.
 > Fuente: `data/metricas.csv` (última corrida por celda) + crudos en `data/runs/`.
 > Definiciones y reglas de comparación: [`METRICAS.md`](METRICAS.md) (M1–M61).
 
@@ -13,6 +13,7 @@
 
 | Fase | Δdur vs c2-memory | Δdur vs c2-orch | Δiters vs c2-memory | Δiters vs c2-orch | Δtok_total vs c2-memory | Δtok_total vs c2-orch |
 |---|---|---|---|---|---|---|
+| 0 | — | — | — | — | — | — |
 
 ## Recordatorios de validez
 

@@ -1,1 +1,2 @@
 fecha,fase,cond,metodo,run_id,status,duration_ms,iters,tool_calls,tokens_input,tokens_output,tokens_total,gate_denials,supervision_min,verify_1er_intento,imagen_ok,adr,notas
+2026-07-07T12:10:10-06:00,0,c0-bare@sonnet,host,a6012b9d-dd36-4eb9-b348-29cec5581595,done,99453,18,0,800517,6306,806823,0,0,,,,

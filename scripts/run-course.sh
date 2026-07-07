@@ -11,7 +11,9 @@
 #
 # ⚠ Corre UNA celda a la vez: todas comparten el working tree de start/.
 # ⚠ La celda vive en la rama curso/<condición>-<modelo>, creada desde main.
+#   Relanzar el MISMO comando reanuda: las fases con gate=ok en el CSV se saltan.
 #   Para relanzar una celda desde cero: git branch -D curso/<condición>-<modelo>
+#   y borra data/curso/fases-<condición>-<modelo>.csv (si no, esas fases se saltan).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -87,6 +89,12 @@ for FASE in 0 1 2 3 4 5; do
     break
   fi
 
+  # Reanudación: si esta fase ya quedó en verde en una corrida anterior, no se repite
+  if awk -F, -v f="${FASE}" '$1==f && $4=="ok"{ok=1} END{exit !ok}' "${FASES_CSV}"; then
+    echo "→ fase ${FASE}: ya en verde en ${FASES_CSV} — se salta (reanudación)"
+    continue
+  fi
+
   SPEC="${ROOT}/start/sdd/phase-0${FASE}/spec.md"
   PROMPT="$(awk '/^## Prompt de tarea/{f=1;next} /^## /{f=0} f' "${SPEC}")"
   LOG="${LOG_DIR}/curso-${COND}-${MODEL_KEY}-fase${FASE}-${STAMP}.log"
@@ -116,7 +124,15 @@ for FASE in 0 1 2 3 4 5; do
     bash "${ROOT}/scripts/collect-metrics.sh" "${RUN_ID}" "${FASE}" "${CELL}" host || true
   fi
 
-  # Commit del avance de la fase en la rama de la celda (renders quedan gitignored)
+  # Evidencia persistente de la fase: rt.cpp + renders (start/ se comparte entre
+  # celdas y la siguiente lo sobrescribe; los .ppm además están gitignored)
+  EVID_DIR="${CURSO_DIR}/evidencia/${COND}-${MODEL_KEY}/fase-${FASE}"
+  mkdir -p "${EVID_DIR}"
+  cp -f start/rt.cpp start/Makefile "${EVID_DIR}/" 2>/dev/null || true
+  cp -f start/*.ppm start/*.jpg "${EVID_DIR}/" 2>/dev/null || true
+  [ -d start/out ] && cp -rf start/out/. "${EVID_DIR}/" 2>/dev/null || true
+
+  # Commit del avance de la fase en la rama de la celda
   git add start/rt.cpp start/Makefile start/CLAUDE.md start/.claude
   git commit -q -m "curso ${CELL}: fase ${FASE} run=${RUN_STATUS} gate=${GATE} (${DUR_S}s, run ${RUN_ID:-sin-id})" || true
 
@@ -169,4 +185,5 @@ echo "→ celda ${CELL} terminada."
 echo "   fases:    ${FASES_CSV}"
 echo "   resumen:  ${RESUMEN_DST}"
 echo "   métricas: data/metricas.csv (cond=${CELL}) + data/runs/*.runshow.txt"
+echo "   evidencia: data/curso/evidencia/${COND}-${MODEL_KEY}/ (rt.cpp + renders por fase)"
 echo "   código:   rama ${BRANCH} (un commit por fase)"
