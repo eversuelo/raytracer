@@ -1,6 +1,16 @@
 {
+  "model": "claude-opus-4-8",
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": ["aitl-js"],
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": ["Edit", "Write", "Bash"],
+    "deny": [
+      "Read(../objective/**)",
+      "Read(//home/eversuelo/Code/thesis-harness/metricas/raytracer/objective/**)",
+      "Bash(*objective*)"
+    ]
+  },
   "hooks": {
     "UserPromptSubmit": [
       {
