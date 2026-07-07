@@ -31,9 +31,9 @@ corrida (columna `modelo` de la hoja de métricas) — es además la palanca de 
 
 ```bash
 lms server start                                # LM Studio en http://localhost:1234/v1
-# id exacto del modelo: lms ls (cópialo tal cual lo expone la API)
-export LMSTUDIO_MODEL="<id-de-nemotron-orchestrator-8b-deepseek-q4_k_s>"
-aitl models                                     # debe mostrar lmstudio ✓ configurado
+# id exacto (ya fijado en ~/.aitl/config.json → global para el CLI):
+export LMSTUDIO_MODEL="nemotron-orchestrator-8b-deepseek-v3.2-speciale-distill"
+aitl models                                     # debe mostrar ● lmstudio ← activo
 ```
 
 > Nota de medición: si LM Studio es viejo y omite el chunk de usage en streaming, los
