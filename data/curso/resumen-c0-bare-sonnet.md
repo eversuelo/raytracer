@@ -1,92 +1,95 @@
-# Resumen del curso — celda c0-bare@sonnet
+# Resumen del curso — celda `c0-bare@sonnet`
 
-Reconstrucción a partir de `git log --oneline`, las specs en `sdd/`, los gates
-(`check.sh`/`probe.py`) y el estado actual de `rt.cpp` en este working tree.
+**Proyecto:** aitl-raytracer · **Condición:** C0-bare (sin memoria persistente ni orquestador) · **Modelo:** Claude Sonnet 5
+**Rama:** `curso/c0-bare-sonnet` · **Tope de la celda:** 60 min
 
 ## 1. Tabla por fase
 
-| Fase | Proyecto (curso IA7200-L) | run_id | Gate | Duración |
+| Fase | Proyecto | run_id | Gate | Duración |
 |---|---|---|---|---|
-| 0 | Proyecto 1 — intersección rayo-esfera y renders de depuración (normal/distancia) | `a6012b9d-dd36-4eb9-b348-29cec5581595` | ✅ ok | 105 s |
-| 1 | Proyecto 2, parte 1 — iluminación directa Monte Carlo (emisor esférico, 3 muestreos) | *(sin registrar)* | ❌ fail | 32 s |
+| 0 | Proyecto 1 — intersección rayo-esfera + renders de depuración (normal/distance) | `a6012b9d-dd36-4eb9-b348-29cec5581595` | ✓ ok | 105 s |
+| 1 (intento 1) | Proyecto 2, parte 1 — iluminación directa Monte Carlo | *(sin run_id)* | ✗ fail | 32 s |
+| 1 (intento 2) | Proyecto 2, parte 1 — iluminación directa Monte Carlo | *(sin run_id)* | ✗ fail | 31 s |
 
-Tiempo total usado por el curso: **141 s** (de un tope de 60 min).
+Suma de duraciones registradas: 168 s (~2.8 min) de un tope de 60 min — muy por debajo del
+límite global; el curso no se detuvo por tiempo sino por el gate de la fase 1 (ver §4).
 
 ## 2. Hasta dónde llegó el curso y por qué se detuvo
 
-El curso completó **Proyecto 1 (fase 0)** con gate en verde y se detuvo al intentar
-**Proyecto 2 parte 1 (fase 1)**: el gate de esa fase quedó en rojo. `run-course.sh` es
-secuencial por diseño — no arranca la fase siguiente si la anterior no cerró en verde —
-así que el curso terminó ahí sin llegar a fases 02–05.
-
-Evidencia de que la fase 1 no llegó a implementarse: `rt.cpp` en este directorio es
-byte a byte el mismo que se commiteó para la fase 0 (commit `313e36a`, `git status`
-limpio) — sigue teniendo únicamente los dos modos de depuración `normal`/`distance` de
-`argv[1]`, sin el cuarto parámetro `Color ke` de `Sphere`, sin estimador Monte Carlo ni
-muestreadores. La imagen `image-uniformsphere32.ppm` que quedó del intento de fase 1 es
-**idéntica** (`cmp` exacto) a `image-normal.ppm`: al no reconocer `"uniformsphere"` como
-argumento, `rt.cpp` cayó por defecto en `MODE_NORMAL`, es decir la fase 1 nunca modificó
-el binario antes de que el gate la evaluara y fallara contra las referencias del
-profesor.
+Se completó únicamente el **Proyecto 1** (fase 0), con gate verde. El **Proyecto 2, parte 1**
+(fase 1: iluminación directa por Monte Carlo con emisor esférico y tres muestreadores) quedó
+en rojo tras dos intentos consecutivos. Como el curso avanza de forma **secuencial** —
+`run-course.sh` no promueve a la fase siguiente si la fase actual no pasa su gate, para no
+construir sobre una base rota — el curso se detuvo ahí: las fases 2 a 5 (luces puntuales,
+muestreo de importancia, BVH/AA/texturas, path tracing) nunca se intentaron.
 
 ## 3. Fases completadas: qué se implementó y cómo se verificó
 
-### Fase 0 — Proyecto 1 (gate ok)
+### Fase 0 — Proyecto 1 (único gate en verde)
 
 Se completaron los cuatro bloques `PROYECTO 1` de `sdd/base/rt.cpp`:
 
-1. **`Sphere::intersect`**: resuelve `|o+t·d−p|²=r²` con `oc = o−p`, `b = oc·d`,
-   `det = b² − (oc·oc − r²)`; si `det<0` devuelve `0.0`, si no prueba primero
-   `t1 = −b−√det` y luego `t2 = −b+√det`, quedándose con la primera raíz `> 1e-4`.
-2. **`intersect(r, t, id)`** global: recorrido lineal de `spheres[]` quedándose con la
-   intersección válida más cercana (`t` y `id` de salida), devuelve `bool`.
-3. **`shade`** con dos modos seleccionados por `argv[1]`: `normal` (`color = obj.c + n`,
-   sin reescalar) y `distance` (`gray = (t−144.676098)/(304.110891−144.676098)`, con las
-   dos constantes de la spec fijas en el código).
-4. **Paralelización**: `#pragma omp parallel for schedule(dynamic, 1)` sobre el bucle de
-   renglones (`y`), cada hilo escribe filas disjuntas de `pixelColors` → determinista.
+- `Sphere::intersect`: resolución de `|o + t·d − p|² = r²` con `oc = o−p`, `b = oc·d`,
+  `det = b² − (oc·oc − r²)`; sin raíz real → `0.0`; si no, la menor raíz positiva
+  `t = −b ± √det` con épsilon `1e-4` para evitar auto-intersección.
+- `intersect(r, t, id)`: recorrido lineal de `spheres[]` quedándose con el hit válido más
+  cercano.
+- `shade`: dos modos por argumento CLI (`./rt normal` / `./rt distance`) — normales
+  `obj.c + n` sin reescalar, y distancia como gris `(t − 144.676098)/(304.110891 − 144.676098)`.
+- Paralelización del bucle de renglones con `#pragma omp parallel for schedule(dynamic, 1)`,
+  sin estado compartido mutable entre píxeles (determinista con 1 o N hilos).
 
-Verificación: `make && bash sdd/phase-00/check.sh`, que corre los 5 criterios de
-aceptación de `sdd/phase-00/spec.md` — determinismo (`cmp -s` entre corridas repetidas y
-entre `OMP_NUM_THREADS=1` vs. default), que `normal` y `distance` produzcan imágenes
-distintas, presencia de `#pragma omp parallel` y del `delete[]` original, y
-`sdd/phase-00/probe.py` (14 sondas analíticas de color con tolerancia ±10/255 tras
-gamma, más gris monótono y siluetas visibles en modo distancia). Los 5 criterios
-quedaron en verde; se re-ejecutó el gate durante esta sesión y sigue en verde. Entregables
-`image-normal.ppm` e `image-distance.ppm` generados como copia de cada modo.
+Verificación: `make && bash sdd/phase-00/check.sh`, que cubre los 5 criterios de aceptación
+de la spec — determinismo (`cmp` bit a bit entre corridas y entre `OMP_NUM_THREADS=1` vs
+default), que `normal` y `distance` produzcan imágenes distintas, presencia de
+`#pragma omp parallel` y del `delete[]` original, y sondeo analítico de píxeles
+(`sdd/phase-00/probe.py`, tolerancia ±10/255 tras gamma) contra los valores esperados de la
+escena de referencia. Gate: **ok**, run_id `a6012b9d-dd36-4eb9-b348-29cec5581595`, 105 s.
 
-### Fase 1 — Proyecto 2 parte 1 (gate fail)
+### Fase 1 — Proyecto 2 parte 1 (no completada)
 
-No hay nada que reportar como implementado: el código sigue siendo el de la fase 0. El
-gate falló porque las comparaciones contra las referencias del profesor
-(`sdd/tools/compare-ref.py` en `sdd/phase-01/check.sh`) no pueden pasar cuando el binario
-ni siquiera reconoce el sampler ni produce iluminación Monte Carlo.
+`rt.cpp` en esta rama es **byte-idéntico** al de la fase 0 (`git diff` entre el commit de
+fase 0 y el estado actual no muestra cambios en el archivo): la clase `Sphere` no ganó el
+campo de emisión `ke`, `shade` no implementa el estimador Monte Carlo, y no existe el CLI
+`./rt <sampler> <spp>` que pide la spec. Es decir, la implementación de iluminación directa
+nunca llegó a escribirse en esta rama — no es un caso de "código incorrecto que no pasó el
+gate", sino de que el gate de fase 1 nunca vio código nuevo que evaluar.
 
-## 4. Incidencias y decisiones técnicas
+No hay verificación que reportar para esta fase: `sdd/phase-01/check.sh` (reproducibilidad
+RNG, comparación de los 3 muestreadores a 32 spp contra referencia, convergencia a 512 spp,
+orden de varianza cosinehemi < uniformhemi < uniformsphere) no llegó a ejecutarse sobre una
+implementación real.
 
-- **Diseño secuencial del curso**: `run-course.sh` no avanza a la fase N+1 si la fase N
-  no cerró con gate verde — evita construir sobre una base rota. Es la causa directa de
-  que el curso se detuviera en fase 1 sin intentar 02–05.
-- **`run_id` ausente en fase 1**: a diferencia de fase 0, la fila de fase 1 no tiene
-  `run_id` registrado en el ledger, con una duración de solo 32 s — muy por debajo de lo
-  que toma implementar el estimador Monte Carlo, el RNG por hilo y los tres
-  muestreadores de la spec. Esto sugiere que la corrida terminó (por error o aborto) antes
-  de que el pipeline alcanzara a registrar el identificador de run, más que una falla de
-  diseño en la spec de fase 1 (que llegó aprobada y con prompt embebido idéntico al de
-  fase 0).
-- **Consistencia del working tree**: `git status` no muestra cambios pendientes en
-  `rt.cpp` ni en `sdd/`; el único artefacto del intento de fase 1 es
-  `image-uniformsphere32.ppm`, coherente con la hipótesis anterior.
+## 4. Incidencias y decisiones técnicas relevantes
 
-## 5. Autoevaluación
+- **Curso secuencial confirmado**: el propio resultado global de la celda indica "el curso
+  es secuencial, no se avanza sobre base rota" — el gate de fase 1 en rojo bloqueó el acceso
+  a fases 2-5 en esta corrida.
+- **Fase 1 falló sin generar `run_id` en ninguno de los dos intentos**, con duraciones muy
+  cortas (31-32 s) para el alcance de la fase (estimador Monte Carlo + 3 muestreadores + RNG
+  por hilo + 9 combinaciones sampler×spp). Combinado con que `rt.cpp` no cambió, esto apunta
+  a una falla temprana en el arranque de esa corrida (agente u orquestador) más que a un
+  intento de implementación que luego fue rechazado por el gate. Los logs de esas corridas
+  están en `data/curso/evidencia/c0-bare-sonnet/fase-1/`, fuera del directorio de trabajo
+  permitido para este agente (`start/`), por lo que no se pudieron inspeccionar desde aquí.
+- **Posible discrepancia de métricas**: el mensaje de resultado global reporta "tiempo total
+  usado: 32 s", pero la suma real de las tres duraciones registradas en el CSV
+  (`fases-c0-bare-sonnet.csv`) es 105 + 32 + 31 = 168 s. Vale la pena revisar si el agregador
+  de `run-course.sh` / `collect-metrics` está tomando solo la duración del último intento en
+  vez de la suma acumulada.
+- **Permisos de la celda** (`.claude/settings.json`): modo `acceptEdits` con allowlist de
+  Bash acotada a herramientas de build/verificación (`make`, `g++`, `python3`, `cmp`, `diff`,
+  etc.) y deny explícito de lectura/mención de `../objective/` (donde vive la solución del
+  investigador) — coherente con que el agente no debe ver la referencia antes de implementar.
 
-Con más tiempo, lo primero sería diagnosticar **por qué la corrida de fase 1 no dejó
-`run_id`** — ese es el bloqueo real para destrabar 02–05, no la dificultad del C++ en sí
-(la spec de fase 1 llegó aprobada, con fórmulas y CLI ya especificadas en el prompt
-embebido). Después implementaría fase 1 tal como la pide la spec: `Sphere` con `Color ke`,
-`shade` devolviendo la emisión directa si el objeto golpeado emite o si no una sola
-muestra del estimador `fr⊙Le·(n·wi)/pdf(wi)`, los tres muestreadores con `erand48` por
-píxel, y CLI `./rt <sampler> <spp>`. También vigilaría el presupuesto de tiempo del gate
-de fase 1: renderiza varias imágenes completas (incluida una a 512 spp con `timeout`
-de 600 s cada una), notablemente más caro que los renders casi instantáneos de fase 0,
-así que conviene reservarle más margen dentro del tope global de 60 min.
+## 5. Autoevaluación breve
+
+Con más tiempo/visibilidad, lo primero sería instrumentar fase 1 para que, aun si el gate
+falla, queden capturados stdout/stderr y un `run_id` de la corrida — los dos intentos
+actuales no dejan rastro utilizable para diagnosticar si el fallo fue de arranque, de
+permisos, o del propio modelo. Antes de escribir el estimador Monte Carlo completo, valdría
+la pena un chequeo de humo mínimo (`make` limpio + `./rt uniformsphere 1` sin crashear) para
+aislar errores de compilación/CLI de errores de lógica de muestreo. Y dado que el curso es
+estrictamente secuencial, un fallo no diagnosticado en una fase temprana tiene un costo alto
+(bloquea las cuatro fases restantes de la escalera), así que priorizaría cerrar ese gap de
+observabilidad antes de reintentar la celda.
