@@ -106,12 +106,11 @@ inline int toDisplayValue(const double x) {
 	return int( pow( clamp(x), 1.0/2.2 ) * 255 + .5);
 }
 
-// calcular la intersección del rayo r con todas las esferas
+// calcular la intersección del rayo r con las primeras n esferas de spheres[]
 // regresar true si hubo una intersección, falso de otro modo
 // almacenar en t la distancia sobre el rayo en que sucede la interseccion
 // almacenar en id el indice de spheres[] de la esfera cuya interseccion es mas cercana
-inline bool intersect(const Ray &r, double &t, int &id) {
-	int n = sizeof(spheres) / sizeof(Sphere);
+inline bool intersect(const Ray &r, double &t, int &id, int n = sizeof(spheres) / sizeof(Sphere)) {
 	t = 1e20;
 	bool hitAny = false;
 	for (int i = 0; i < n; i++) {
@@ -126,6 +125,17 @@ inline bool intersect(const Ray &r, double &t, int &id) {
 }
 
 inline bool emits(const Color &ke) { return ke.x != 0.0 || ke.y != 0.0 || ke.z != 0.0; }
+
+// Numero de esferas de la escena sin la esfera emisora (ultimo elemento de spheres[]);
+// la usa el modo "point" (phase-02), que la reemplaza por una fuente puntual.
+const int N_SPHERES_NO_EMITTER = sizeof(spheres) / sizeof(Sphere) - 1;
+
+// RF-3 (phase-02): la fuente puntual se representa en una lista aparte, no como
+// esfera de radio 0 dentro de spheres[] — evita tener que dar trato especial a
+// radio 0 en Sphere::intersect y deja que phase-03 combine puntuales y esferas
+// emisoras sin tocar esta estructura.
+struct PointLight { Point p; Color I; };
+PointLight g_pointLight = { Point(0, 24.3, 0), Color(4000, 4000, 4000) };
 
 // muestreador de direcciones seleccionado en main() vía argv
 enum Sampler { UNIFORM_SPHERE, UNIFORM_HEMI, COSINE_HEMI };
@@ -195,16 +205,55 @@ Color shade(const Ray &r, unsigned short Xi[3]) {
 	return fr.mult(Le) * (cosTheta / pdf);
 }
 
+// Shading determinista de iluminación directa con fuente puntual (phase-02,
+// RF-1/RF-2): un solo rayo por pixel, sin Monte Carlo. La escena excluye la
+// esfera emisora de la phase-01 (N_SPHERES_NO_EMITTER); ningún rayo la ve.
+Color shadePoint(const Ray &r) {
+	double t;
+	int id = 0;
+	if (!intersect(r, t, id, N_SPHERES_NO_EMITTER))
+		return Color();
+
+	const Sphere &obj = spheres[id];
+	Point x = r.o + r.d * t;
+	Vector n = (x - obj.p).normalize();
+
+	Vector toLight = g_pointLight.p - x;
+	double r2 = toLight.dot(toLight);
+	double dist = sqrt(r2);
+	Vector w = toLight * (1.0 / dist);
+
+	double cosTheta = n.dot(w);
+	if (cosTheta <= 0.0)
+		return Color();
+
+	// rayo de sombra hacia la fuente; épsilon de la fase 0 evita acné de sombra
+	double tShadow;
+	int idShadow = 0;
+	if (intersect(Ray(x, w), tShadow, idShadow, N_SPHERES_NO_EMITTER) && tShadow < dist - 1e-4)
+		return Color();
+
+	Color fr = obj.c * (1.0 / PI);
+	return fr.mult(g_pointLight.I) * (cosTheta / r2);
+}
+
+// modo de shading seleccionado en main() vía argv: MC (phase-01) o puntual (phase-02)
+enum Mode { MODE_MC, MODE_POINT };
+Mode g_mode = MODE_MC;
+
 int main(int argc, char *argv[]) {
 	int w = 1024, h = 768; // image resolution
 
-	// selecciona el muestreador y las muestras por pixel por argumentos de línea de comandos
-	if (argc > 1) {
+	// selecciona el modo (MC de phase-01 o puntual de phase-02), el muestreador
+	// y las muestras por pixel por argumentos de línea de comandos (sin stdin)
+	if (argc > 1 && strcmp(argv[1], "point") == 0) {
+		g_mode = MODE_POINT;
+	} else if (argc > 1) {
 		if (strcmp(argv[1], "uniformsphere") == 0) g_sampler = UNIFORM_SPHERE;
 		else if (strcmp(argv[1], "uniformhemi") == 0) g_sampler = UNIFORM_HEMI;
 		else g_sampler = COSINE_HEMI;
 	}
-	int spp = (argc > 2) ? atoi(argv[2]) : 32;
+	int spp = (argc > 2) ? atoi(argv[2]) : 32; // no aplica en modo "point"
 	if (spp < 1) spp = 1;
 
 	// fija la posicion de la camara y la dirección en que mira
@@ -225,24 +274,30 @@ int main(int argc, char *argv[]) {
 		for(int x = 0; x < w; x++ ) {
 			int idx = (h - y - 1) * w + x; // index en 1D para una imagen 2D x,y son invertidos
 
-			// estado erand48 sembrado de forma determinista por indice de pixel (x,y):
-			// misma imagen con 1 o N hilos, sin rand()/srand() global ni dependencia del hilo
-			unsigned int seedIdx = (unsigned int)y * w + x;
-			unsigned int mixed = seedIdx * 2654435761u; // hash multiplicativo: decorrelaciona pixeles vecinos
-			unsigned short Xi[3] = {
-				(unsigned short)(mixed & 0xFFFF),
-				(unsigned short)((mixed >> 16) & 0xFFFF),
-				(unsigned short)((seedIdx >> 8) ^ 0x330E)
-			};
-
 			// para el pixel actual, el rayo de camara es identico en las N muestras (sin jitter)
 			Vector cameraRayDir = cx * ( double(x)/w - .5) + cy * ( double(y)/h - .5) + camera.d;
 			Ray cameraRay( camera.o, cameraRayDir.normalize() );
 
-			Color sum;
-			for (int s = 0; s < spp; s++)
-				sum = sum + shade(cameraRay, Xi);
-			Color pixelValue = sum * (1.0 / spp);
+			Color pixelValue;
+			if (g_mode == MODE_POINT) {
+				// shading determinista de un solo rayo: sin RNG, sin promediar spp
+				pixelValue = shadePoint(cameraRay);
+			} else {
+				// estado erand48 sembrado de forma determinista por indice de pixel (x,y):
+				// misma imagen con 1 o N hilos, sin rand()/srand() global ni dependencia del hilo
+				unsigned int seedIdx = (unsigned int)y * w + x;
+				unsigned int mixed = seedIdx * 2654435761u; // hash multiplicativo: decorrelaciona pixeles vecinos
+				unsigned short Xi[3] = {
+					(unsigned short)(mixed & 0xFFFF),
+					(unsigned short)((mixed >> 16) & 0xFFFF),
+					(unsigned short)((seedIdx >> 8) ^ 0x330E)
+				};
+
+				Color sum;
+				for (int s = 0; s < spp; s++)
+					sum = sum + shade(cameraRay, Xi);
+				pixelValue = sum * (1.0 / spp);
+			}
 
 			// limitar los tres valores de color del pixel a [0,1] despues de promediar
 			pixelColors[idx] = Color(clamp(pixelValue.x), clamp(pixelValue.y), clamp(pixelValue.z));
@@ -251,7 +306,10 @@ int main(int argc, char *argv[]) {
 
 	fprintf(stderr,"\n");
 
-	FILE *f = fopen("image.ppm", "w");
+	// phase-02: el modo puntual guarda con su propio nombre (spec); los modos MC
+	// de phase-01 conservan "image.ppm" sin cambio.
+	const char *outFile = (g_mode == MODE_POINT) ? "image-plight.ppm" : "image.ppm";
+	FILE *f = fopen(outFile, "w");
 	// escribe cabecera del archivo ppm, ancho, alto y valor maximo de color
 	fprintf(f, "P3\n%d %d\n%d\n", w, h, 255);
 	for (int p = 0; p < w * h; p++)
