@@ -2,7 +2,8 @@
  // g++ -O3 -fopenmp rt.cpp -o rt
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>  
+#include <stdio.h>
+#include <string.h>
 #include <omp.h>
 
 class Vector 
@@ -56,6 +57,18 @@ public:
 	double intersect(const Ray &ray) const {
 		// regresar distancia si hay intersección
 		// regresar 0.0 si no hay interseccion
+		Vector oc = ray.o - p;
+		double b = oc.dot(ray.d);
+		double det = b * b - (oc.dot(oc) - r * r);
+		if (det < 0)
+			return 0.0;
+		double sq = sqrt(det);
+		double t1 = -b - sq;
+		if (t1 > 1e-4)
+			return t1;
+		double t2 = -b + sq;
+		if (t2 > 1e-4)
+			return t2;
 		return 0.0;
 	}
 };
@@ -92,8 +105,23 @@ inline int toDisplayValue(const double x) {
 // almacenar en t la distancia sobre el rayo en que sucede la interseccion
 // almacenar en id el indice de spheres[] de la esfera cuya interseccion es mas cercana
 inline bool intersect(const Ray &r, double &t, int &id) {
-	return false;
+	int n = sizeof(spheres) / sizeof(Sphere);
+	t = 1e20;
+	bool hitAny = false;
+	for (int i = 0; i < n; i++) {
+		double d = spheres[i].intersect(r);
+		if (d > 0.0 && d < t) {
+			t = d;
+			id = i;
+			hitAny = true;
+		}
+	}
+	return hitAny;
 }
+
+// modo de shading seleccionado en main() vía argv
+enum ShadeMode { MODE_NORMAL, MODE_DISTANCE };
+ShadeMode g_mode = MODE_NORMAL;
 
 // Calcula el valor de color para el rayo dado
 Color shade(const Ray &r) {
@@ -102,26 +130,38 @@ Color shade(const Ray &r) {
 	// determinar que esfera (id) y a que distancia (t) el rayo intersecta
 	if (!intersect(r, t, id))
 		return Color();	// el rayo no intersecto objeto, return Vector() == negro
-  
+
 	const Sphere &obj = spheres[id];
-	
+
 	// PROYECTO 1
 	// determinar coordenadas del punto de interseccion
-	Point x;
+	Point x = r.o + r.d * t;
 
 	// determinar la dirección normal en el punto de interseccion
-	Vector n;
+	Vector n = (x - obj.p).normalize();
 
 	// determinar el color que se regresara
 	Color colorValue;
+	if (g_mode == MODE_DISTANCE) {
+		double g = (t - 144.676098) / (304.110891 - 144.676098);
+		colorValue = Color(g, g, g);
+	} else {
+		colorValue = obj.c + n;
+	}
 
-	return colorValue; 
+	return colorValue;
 }
 
 
 int main(int argc, char *argv[]) {
 	int w = 1024, h = 768; // image resolution
-  
+
+	// selecciona el modo de shading por argumento de línea de comandos
+	if (argc > 1 && strcmp(argv[1], "distance") == 0)
+		g_mode = MODE_DISTANCE;
+	else
+		g_mode = MODE_NORMAL;
+
 	// fija la posicion de la camara y la dirección en que mira
 	Ray camera( Point(0, 11.2, 214), Vector(0, -0.042612, -1).normalize() );
 
@@ -134,7 +174,8 @@ int main(int argc, char *argv[]) {
 
 	// PROYECTO 1
 	// usar openmp para paralelizar el ciclo: cada hilo computara un renglon (ciclo interior),
-	for(int y = 0; y < h; y++) 
+	#pragma omp parallel for schedule(dynamic, 1)
+	for(int y = 0; y < h; y++)
 	{ 
 		// recorre todos los pixeles de la imagen
 		fprintf(stderr,"\r%5.2f%%",100.*y/(h-1));
