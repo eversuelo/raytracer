@@ -3,4 +3,3 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-07T13:31:10-06:00,c2-memory@sonnet,1,7b4780dc-90a3-43c7-96b6-4909efe597ad,done,ok,698,41,45479,2880108,2.248,,,,
 2026-07-07T13:36:59-06:00,c2-memory@sonnet,2,fabc15cd-9b60-443a-8418-5e505281fca6,done,ok,327,29,18007,1607965,1.4111,,,,
 2026-07-07T13:49:14-06:00,c2-memory@sonnet,3,70b39c38-9ee3-4b70-9165-4de5a2e43983,done,ok,693,32,46337,2740608,2.2511,,,,
-2026-07-08T09:32:28-06:00,c2-orchestrator@sonnet,0,,done,fail,9,,,,,,,,
