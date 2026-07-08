@@ -1,0 +1,25 @@
+
+> Completa los cuatro bloques marcados `PROYECTO 1` en `rt.cpp`.
+> (1) `Sphere::intersect`: con `oc = o − p`, `b = oc·d`, `det = b² − (oc·oc − r²)`;
+> si `det < 0` devuelve `0.0`; si no, devuelve la menor raíz `t = −b ± √det` que sea
+> mayor que `1e−4`, o `0.0` si ninguna lo es.
+> (2) `intersect(r, t, id)`: recorre `spheres[]` y deja en `t`/`id` la intersección
+> válida más cercana; devuelve `true`/`false`.
+> (3) `shade` con dos modos seleccionables por argumento de línea de comandos
+> (`./rt normal` y `./rt distance`). Con `x = r.o + r.d·t` y
+> `n = (x − obj.p).normalize()`:
+>   - `normal`: el color es la suma directa `obj.c + n` — SIN reescalar con
+>     `(n+1)*0.5`; el clamp del pipeline recorta a [0,1]. Autoverificación tras
+>     gamma: pared izquierda (255,136,136), derecha (0,136,224), trasera
+>     (224,224,255), suelo (224,255,224), techo (224,0,224); las tres esferas se ven
+>     blancas con franja cian a la izquierda y franja magenta abajo.
+>   - `distance`: gris `g = (t − 144.676098) / (304.110891 − 144.676098)`, devuelve
+>     `Color(g, g, g)` (fuera de [0,1] lo recorta el clamp): pared trasera casi
+>     blanca, esferas en gris medio, esquinas cercanas oscuras.
+> (4) Paraleliza el bucle de renglones con OpenMP manteniendo la imagen determinista
+> (idéntica bit a bit con 1 o N hilos).
+> No modifiques la escena, la cámara, la resolución (1024×768) ni la salida
+> (`image.ppm` P3 ASCII, gamma 2.2). Genera `image-normal.ppm` e
+> `image-distance.ppm` (copia del `image.ppm` de cada modo). Antes de dar por
+> terminado, `make && bash sdd/phase-00/check.sh` debe quedar verde.
+
