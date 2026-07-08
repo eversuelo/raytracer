@@ -25,7 +25,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COND="${1:?c0-bare | c2-memory}"
+COND="${1:?c0-bare | c2-memory | c2-orchestrator}"
 MODEL_KEY="${2:?sonnet | opus}"
 COURSE_MIN="${COURSE_MIN:-60}"
 
@@ -164,8 +164,12 @@ ${FASE},${RUN_ID:-—},${RUN_STATUS},${GATE},${DUR_S}"
       "${F}" "${EV_PFX}.${BASE}.png" 2>/dev/null || cp "${F}" "${EV_PFX}.${BASE}.ppm"
   done
 
-  # Commit del avance + TAG de la fase (rama única `curso`; renders gitignored).
+  # Commit del avance + TAG de la fase (rama única `curso`; renders crudos gitignored).
+  # La EVIDENCIA de la corrida viaja en el mismo commit: PNG comprimidos + copia del
+  # código + runshow + fila del CSV — así la rama conserva todo lo de cada corrida.
   git add start/rt.cpp start/Makefile start/CLAUDE.md start/.claude
+  git add data/metricas.csv 2>/dev/null || true
+  git add data/runs/*.png data/runs/*.rt.cpp data/runs/*.runshow.txt 2>/dev/null || true
   git commit -q -m "curso ${CELL}: fase ${FASE} run=${RUN_STATUS} gate=${GATE} (${DUR_S}s, run ${RUN_ID:-sin-id})" || true
   git tag -f "celda/${CELL_TAG}/f${FASE}" >/dev/null 2>&1 || true
 
@@ -213,9 +217,15 @@ else
   echo "⚠ el agente no dejó RESUMEN-CURSO.md — revisa el log del resumen."
 fi
 
+# Cierre de evidencia de la celda en la rama: resumen + CSV + cualquier evidencia
+# rezagada de data/runs (p. ej. runshow del resumen).
+git add data/curso data/metricas.csv 2>/dev/null || true
+git add data/runs/*.png data/runs/*.rt.cpp data/runs/*.runshow.txt 2>/dev/null || true
+git commit -q -m "curso ${CELL}: evidencia final de la celda (${STOP_REASON}, ${TOTAL_S}s)" || true
+
 echo ""
 echo "→ celda ${CELL} terminada."
 echo "   resumen:  ${RESUMEN_DST}"
 echo "   métricas: data/metricas.csv (cell=${CELL}) + data/runs/*.runshow.txt"
-echo "   evidencia: data/runs/fase*-${CELL}-*.png (renders) + *.rt.cpp (código)"
+echo "   evidencia: data/runs/fase*-${CELL}-*.png (renders) + *.rt.cpp (código) — commiteada en la rama"
 echo "   código:   rama ${BRANCH}, tags celda/${CELL_TAG}/f0..f5 (un commit+tag por fase)"
