@@ -52,10 +52,15 @@ Mitigaciones ya en `run-cell.sh`: `TIMEOUT_MIN` (freno duro, default 30 min) y
 
 ## Configuración
 
+⚠ El id distill (`…-speciale-distill`) quedó **DESCARTADO** (ver hallazgo de runtime
+arriba: razonamiento desbocado + contabilidad de tokens rota). Usa uno de los dos ids
+operativos vigentes:
+
 ```bash
 lms server start                                # LM Studio en http://localhost:1234/v1
-# id exacto (ya fijado en ~/.aitl/config.json → global para el CLI):
-export LMSTUDIO_MODEL="nemotron-orchestrator-8b-deepseek-v3.2-speciale-distill"
+# Orquestador — elige UNO (ambos válidos; qwen3-4b es el más frío/rápido):
+export LMSTUDIO_MODEL="qwen/qwen3-4b-2507"           # default recomendado
+# export LMSTUDIO_MODEL="nemotron-orchestrator-8b"   # alt: entrenamiento de orquestación (no-distill, Q3)
 aitl models                                     # debe mostrar ● lmstudio ← activo
 ```
 
