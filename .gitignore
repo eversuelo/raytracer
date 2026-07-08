@@ -26,3 +26,6 @@ start/.mcp.json
 logs/
 *.log
 data/logs/
+
+# Workspaces efímeros del curso paralelo (evidencia va a data/runs)
+data/paralelo/

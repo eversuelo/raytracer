@@ -1,9 +1,0 @@
-fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,verify_1er,imagen_ok,adr,notas
-2026-07-07T13:19:15-06:00,c2-memory@sonnet,0,16de10c9-ec1b-4e75-8aeb-16b45de6bd54,done,ok,162,18,8915,769494,0.6077,,,,
-2026-07-07T13:31:10-06:00,c2-memory@sonnet,1,7b4780dc-90a3-43c7-96b6-4909efe597ad,done,ok,698,41,45479,2880108,2.248,,,,
-2026-07-07T13:36:59-06:00,c2-memory@sonnet,2,fabc15cd-9b60-443a-8418-5e505281fca6,done,ok,327,29,18007,1607965,1.4111,,,,
-2026-07-07T13:49:14-06:00,c2-memory@sonnet,3,70b39c38-9ee3-4b70-9165-4de5a2e43983,done,ok,693,32,46337,2740608,2.2511,,,,
-2026-07-08T10:01:53-06:00,c2-orchestrator@sonnet,0,3ea268dc-c3da-4443-87aa-f74674aa787c,done,ok,261,1,396,19124,,,,,
-2026-07-08T10:09:08-06:00,c2-orchestrator@sonnet,1,a0a19ef1-5fe7-41a9-8e0f-629012579686,done,ok,420,2,351,30396,,,,,
-2026-07-08T10:16:25-06:00,c2-orchestrator@sonnet,2,bc6bbe4c-e3fd-4b13-801d-584709e77af3,done,ok,420,3,1205,41704,,,,,
-2026-07-08T10:17:51-06:00,c2-orchestrator@sonnet,3,,done,fail,82,,,,,,,,
