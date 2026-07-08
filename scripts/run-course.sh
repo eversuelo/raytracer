@@ -4,7 +4,14 @@
 # final en markdown escrito por el propio Claude de la celda.
 #
 # Uso:
-#   scripts/run-course.sh <c0-bare|c2-memory> <sonnet|opus>
+#   scripts/run-course.sh <c0-bare|c2-memory|c2-orchestrator> <sonnet|opus>
+#
+#   c0-bare / c2-memory  → Claude Code como agente vía run-host (modelo Claude = 2º arg).
+#   c2-orchestrator      → loop nativo del harness como ORQUESTADOR con modelo local de
+#                          LM Studio (LMSTUDIO_MODEL); delega en sub-agentes claude-code
+#                          (2º arg = tier del sub-agente). Requiere `lms server start`
+#                          + `aitl models` mostrando lmstudio ← activo (ver
+#                          start/conditions/c2-orchestrator/MODELO.md).
 #
 # Variables de entorno:
 #   COURSE_MIN=60    tope global de la celda en minutos (default 60)
@@ -24,7 +31,7 @@ COURSE_MIN="${COURSE_MIN:-60}"
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-case "${COND}" in c0-bare|c2-memory) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory)";; esac
+case "${COND}" in c0-bare|c2-memory|c2-orchestrator) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory|c2-orchestrator)";; esac
 case "${MODEL_KEY}" in
   sonnet) MODEL_ID="claude-sonnet-5" ;;
   opus)   MODEL_ID="claude-opus-4-8" ;;
@@ -43,8 +50,14 @@ command -v aitl >/dev/null   || die "no encuentro 'aitl' en PATH"
 command -v claude >/dev/null || die "no encuentro 'claude' (Claude Code) en PATH"
 command -v python3 >/dev/null || die "no encuentro 'python3' (para PPM→PNG y métricas)"
 python3 -c "import PIL" 2>/dev/null || die "falta Pillow (PPM→PNG): pip install pillow"
-if [ "${COND}" = "c2-memory" ] && [ ! -f "${ROOT}/aitl-raytracer/.mcp.json" ]; then
-  die "c2-memory necesita aitl-raytracer/.mcp.json (credenciales del MCP)"
+if [ "${COND}" != "c0-bare" ] && [ ! -f "${ROOT}/aitl-raytracer/.mcp.json" ]; then
+  die "${COND} necesita aitl-raytracer/.mcp.json (credenciales del MCP)"
+fi
+if [ "${COND}" = "c2-orchestrator" ]; then
+  aitl models 2>/dev/null | grep -i 'lmstudio' | grep -qi 'activo' \
+    || die "c2-orchestrator necesita LM Studio ACTIVO como orquestador:
+  lms server start && export LMSTUDIO_MODEL=…   (ver start/conditions/c2-orchestrator/MODELO.md)
+  luego 'aitl models' debe mostrar lmstudio ← activo"
 fi
 for F in 0 1 2 3 4 5; do
   S="${ROOT}/start/sdd/phase-0${F}/spec.md"
@@ -76,7 +89,7 @@ cp "start/conditions/${COND}/.claude/settings.json" start/.claude/settings.json
 sed -i "s/\"model\": *\"[^\"]*\"/\"model\": \"${MODEL_ID}\"/" start/.claude/settings.json
 grep -q "\"${MODEL_ID}\"" start/.claude/settings.json || die "no pude fijar el modelo en start/.claude/settings.json"
 rm -f start/*.ppm start/*.png
-if [ "${COND}" = "c2-memory" ]; then
+if [ "${COND}" != "c0-bare" ]; then
   cp aitl-raytracer/.mcp.json start/.mcp.json   # gitignored: lleva credenciales
 fi
 echo "→ base reanclada + plantilla ${COND} instalada; modelo del agente: ${MODEL_ID}"
@@ -105,9 +118,21 @@ for FASE in 0 1 2 3 4 5; do
 
   FT0=$(date +%s)
   set +e
-  timeout --foreground "${LEFT}" \
-    aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
-    --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+  if [ "${COND}" = "c2-orchestrator" ]; then
+    # Orquestador = loop NATIVO del harness con modelo local (LM Studio, LMSTUDIO_MODEL);
+    # delega en sub-agentes claude-code (start/.claude/settings.json). --verify-cmd cierra
+    # el loop cuando el gate objetivo queda verde. Corre desde start/ (cwd del proyecto).
+    GATE_CMD="make"
+    [ -f "${ROOT}/start/sdd/phase-0${FASE}/check.sh" ] && GATE_CMD="make && bash sdd/phase-0${FASE}/check.sh"
+    ( cd "${ROOT}/start" && timeout --foreground "${LEFT}" \
+        aitl run "${PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
+        --verify-cmd "${GATE_CMD}" </dev/null 2>&1 ) | tee "${LOG}"
+  else
+    # c0-bare / c2-memory = Claude Code como agente vía run-host (modelo Claude sed'ado).
+    timeout --foreground "${LEFT}" \
+      aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
+      --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+  fi
   RC=${PIPESTATUS[0]}
   set -e
   DUR_S=$(( $(date +%s) - FT0 ))
