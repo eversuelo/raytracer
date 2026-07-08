@@ -127,11 +127,28 @@ for FASE in 0 1 2 3 4 5; do
     # Orquestador = loop NATIVO del harness con modelo local (LM Studio, LMSTUDIO_MODEL);
     # delega en sub-agentes claude-code (start/.claude/settings.json). --verify-cmd cierra
     # el loop cuando el gate objetivo queda verde. Corre desde start/ (cwd del proyecto).
+    #
+    # La delegación NO es automática: bajo `aitl run` la única vía es que el MODELO
+    # decida invocar `aitl run-host --host claude-code` con su tool de shell. Por eso el
+    # prompt del orquestador son instrucciones de orquestación explícitas, y el prompt
+    # de la fase viaja en FASE-PROMPT.txt (citarlo multilínea dentro del comando shell
+    # sería frágil). El ShellTool default es 120s: el prompt exige timeout=3000.
     GATE_CMD="make"
     [ -f "${ROOT}/start/sdd/phase-0${FASE}/check.sh" ] && GATE_CMD="make && bash sdd/phase-0${FASE}/check.sh"
+    printf '%s\n' "${PROMPT}" > "${ROOT}/start/FASE-PROMPT.txt"
+    ORCH_PROMPT="Eres el ORQUESTADOR de esta fase. NO escribas ni edites código tú mismo (no uses write_file).
+La tarea completa de la fase está en el archivo FASE-PROMPT.txt de tu directorio actual.
+Sigue EXACTAMENTE estos pasos:
+1. DELEGA la implementación al sub-agente Claude Code: llama a tu herramienta shell con timeout=3000 y este comando:
+aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project aitl-raytracer --host claude-code --cwd .
+2. VERIFICA con tu herramienta shell (timeout=600): ${GATE_CMD}
+3. Si la verificación falla, DELEGA una corrección (shell, timeout=3000), citando el error resumido del gate:
+aitl run-host 'El gate de la fase fallo con este error: <resumen del error>. Diagnostica y corrige rt.cpp hasta que ${GATE_CMD} quede verde.' --project aitl-raytracer --host claude-code --cwd .
+Máximo 3 delegaciones en total. Tu éxito se mide únicamente con el gate en verde."
     ( cd "${ROOT}/start" && timeout --foreground "${LEFT}" \
-        aitl run "${PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
+        aitl run "${ORCH_PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
         --verify-cmd "${GATE_CMD}" </dev/null 2>&1 ) | tee "${LOG}"
+    rm -f "${ROOT}/start/FASE-PROMPT.txt"
   else
     # c0-bare / c2-memory = Claude Code como agente vía run-host (modelo Claude sed'ado).
     timeout --foreground "${LEFT}" \
