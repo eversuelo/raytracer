@@ -7,7 +7,10 @@ desarrolla en 6 fases (F0–F5), cada fase bajo tres condiciones, y las métrica
 (MCP `aitl-js`, proyecto `aitl-raytracer`).
 
 **Este es el ÚNICO repo con ramas**: `main` = specs + protocolo + scripts (nunca
-implementación); cada celda del experimento vive en su rama `fase-N/<condición>`.
+implementación). El **curso completo** (`run-course.sh`) usa **una sola rama `curso`**:
+cada celda reancla `start/` a la base y deja un commit+tag por fase
+(`celda/<condición>-<modelo>/f<N>`) — la celda es su conjunto de tags, no una rama.
+(El `run-cell.sh` legacy de fase suelta aún usa ramas `fase-N/<condición>`.)
 
 ## Cómo medir (TL;DR)
 
@@ -29,11 +32,10 @@ Cada corrida deja: fila en `data/metricas.csv`, crudo en `data/runs/*.runshow.tx
 log en `data/logs/` (gitignored) y el markdown [`RESUMEN-METRICAS.md`](RESUMEN-METRICAS.md)
 regenerado con la matriz por celda y los deltas C0−C2 (M49–M51).
 
-Al terminar cada celda: revisa la fila del CSV (tokens > 0, status), rellena a mano
-las columnas de juicio (`verify_1er_intento`, `imagen_ok`, `adr`, `notas`) y commitea
-`data/` + `start/` + `RESUMEN-METRICAS.md` **en la rama de la celda** (`fase-N/<cond>`).
-`main` nunca lleva implementación. Corridas inválidas: `aitl intervene` + nota en el
-CSV — jamás se borran.
+Al terminar cada celda: revisa la fila del CSV (`costo_pond` > 0, status), rellena a mano
+las columnas de juicio (`verify_1er`, `imagen_ok`, `adr`, `notas`). El curso ya
+commitea+taguea el código en `curso` (`celda/<cond>-<modelo>/f<N>`); `main` nunca lleva
+implementación. Corridas inválidas: `aitl intervene` + nota en el CSV — jamás se borran.
 
 ## Gate objetivo por fase (`check.sh`)
 

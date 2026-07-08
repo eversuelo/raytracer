@@ -22,6 +22,27 @@ experimento raytracer de la tesis (*Loop + Harness Engineering*). Cada métrica 
 - **Controladas**: prompt de tarea idéntico (textual, desde la spec), mismo commit de partida por fase (ramas gemelas `fase-N/{c0-bare,c2-memory,c2-orchestrator}` en el repo raíz), mismo gate `--verify-cmd`, misma máquina.
 - **Identidad MCP**: `project: "aitl-raytracer"` en toda llamada — un `run_id` durable por celda.
 
+## 0.5 Set primario (el que realmente se llena) vs. catálogo de referencia
+
+El CSV único `data/metricas.csv` guarda **solo el set primario** — las métricas que de
+verdad se capturan bajo `run-host` (Cara B):
+
+```
+fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,verify_1er,imagen_ok,adr,notas
+```
+
+- `costo_pond` = **costo comparable en USD** = `host_meta.cost_usd` real que reporta Claude
+  (ya pondera el caché a su tarifa con descuento). Reemplaza al `tokens_input` crudo, que
+  **no** es comparable entre condiciones y queda solo en los JSON de `data/runs/`.
+- `gate` (ok/fail) y `dur_s` (wall-clock de la fase) vienen de `run-course.sh`.
+- `verify_1er`, `imagen_ok`, `adr`, `notas` son columnas de **juicio manual**.
+- Se retiraron del CSV las columnas que bajo `run-host` salían **siempre 0**
+  (`tool_calls`, `gate_denials`, `supervision_min`) y el `tokens_input` crudo.
+
+Las métricas **M1–M61** de abajo son el **catálogo de referencia** (la superset ISO/25010
+para la tesis): útiles para el análisis profundo desde los JSON crudos y para C1/loop
+nativo, pero **la mayoría es aspiracional** respecto a lo que el pipeline automatiza hoy.
+
 ---
 
 ## 1. Métricas primarias por corrida (`aitl run-show <run_id>`)

@@ -44,27 +44,34 @@ scripts/run-course.sh c2-memory opus
 
 ## Qué hace el script por dentro
 
-1. Crea la rama `curso/<condición>-<modelo>` **desde `main`** (mismo punto de partida
-   para las 4) y siembra `start/` con `sdd/base/rt.cpp` + la plantilla de la condición,
-   inyectando el modelo en `start/.claude/settings.json`.
-2. Corre las fases 00→05 en orden. Por fase: pasa el prompt de la spec a
-   `aitl run-host --host claude-code`, corre el **gate objetivo** él mismo
-   (`make` + `check.sh` de la fase, stdin cerrado) y commitea el avance en la rama.
+1. Usa **una sola rama `curso`** (creada desde `main` la primera vez) y **reancla**
+   `start/` a la base (`sdd/base/rt.cpp` + Makefile + plantilla de la condición, con el
+   modelo inyectado en `start/.claude/settings.json`) + limpia renders viejos, de modo
+   que cada celda parte del **mismo punto** sin heredar el código de la celda anterior.
+2. Corre las fases 00→05 en orden. Por fase: limpia `start/*.ppm|*.png`, pasa el prompt de
+   la spec a `aitl run-host --host claude-code`, corre el **gate objetivo** él mismo
+   (`make` + `check.sh` de la fase, stdin cerrado), guarda métricas + evidencia y
+   **commitea + taguea** el avance: `celda/<condición>-<modelo>/f<N>`.
 3. **Se detiene** si el gate de una fase queda rojo (el curso es secuencial) o si el
    tope global se agota.
 4. Al final, el **propio Claude de la celda escribe el resumen** de su corrida.
+
+> Modelo de rama ÚNICA (refactor 2026-07-07): la celda ya no es una rama sino su **conjunto
+> de tags** `celda/<condición>-<modelo>/f0..f5`. Todas las celdas viven en `curso`, cada una
+> reanclada a la base. Listar una celda: `git tag -l 'celda/c2-memory-sonnet/*'`.
 
 ## Dónde queda todo (por celda)
 
 | Artefacto | Ruta |
 |---|---|
 | Resumen escrito por Claude | `data/curso/resumen-<condición>-<modelo>.md` |
-| Fases y tiempos (CSV) | `data/curso/fases-<condición>-<modelo>.csv` |
-| Métricas por fase (M1–M15) | `data/metricas.csv` (columna `cond` = `c0-bare@sonnet`, …) |
-| Telemetría cruda por corrida | `data/runs/faseN-<cond@modelo>-<run_id>.runshow.txt` |
+| Métricas (CSV único) | `data/metricas.csv` (set mínimo; columna `cell` = `c0-bare@sonnet`, …) |
+| Telemetría cruda por corrida | `data/runs/faseN-<cell>-<run_id>.runshow.txt` (JSON) |
+| Evidencia de renders | `data/runs/faseN-<cell>-<run_id>.<nombre>.png` (**PNG**, ~26 KB vs ~9 MB PPM) |
+| Código por fase | `data/runs/faseN-<cell>-<run_id>.rt.cpp` |
 | Logs en vivo | `data/logs/curso-<condición>-<modelo>-faseN-*.log` (+ `.gate.log`) |
-| Código por fase | rama `curso/<condición>-<modelo>`, un commit por fase |
-| Renders | `start/*.ppm` (gitignored; quedan los de la última fase corrida) |
+| Código versionado | rama `curso`, tags `celda/<condición>-<modelo>/f0..f5` (commit+tag por fase) |
+| Renders de trabajo | `start/*.ppm` (gitignored; se limpian entre fases) |
 
 `data/curso/`, `data/metricas.csv` y `data/runs/` quedan **sin commitear** a propósito:
 acumulan las 4 celdas en el working tree; consolídalos en `main` cuando termine la
@@ -78,8 +85,9 @@ matriz (junto con las columnas manuales `verify_1er_intento`, `imagen_ok`, `adr`
   la primera (ventaja no atribuible al modelo). Si quieres celdas c2 puras, resetea el
   store entre ambas según `aitl-raytracer/MANUAL.md`, o interpreta la segunda como
   "modelo + memoria acumulada".
-- **Relanzar una celda desde cero**: `git branch -D curso/<condición>-<modelo>`, borra
-  su CSV en `data/curso/` y su fila en `data/metricas.csv`, y vuelve a lanzar.
+- **Relanzar una celda desde cero**: vuelve a lanzar `run-course.sh` (reancla la base y
+  re-taguea `celda/<condición>-<modelo>/f*` con `-f`); borra sus filas en
+  `data/metricas.csv` si quieres una hoja limpia. Ya no hay rama por celda que borrar.
 - Si una fase muere por tope (`status=timeout`), la celda termina ahí; el resumen y el
   CSV lo registran — eso ES el dato (no relances "para que termine").
 
