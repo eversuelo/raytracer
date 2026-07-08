@@ -145,17 +145,30 @@ aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project aitl-raytracer --host claude
 3. Si la verificación falla, DELEGA una corrección (shell, timeout=3000), citando el error resumido del gate:
 aitl run-host 'El gate de la fase fallo con este error: <resumen del error>. Diagnostica y corrige rt.cpp hasta que ${GATE_CMD} quede verde.' --project aitl-raytracer --host claude-code --cwd .
 Máximo 3 delegaciones en total. Tu éxito se mide únicamente con el gate en verde."
+    # Watchdog anti-cuelgue: 'aitl run --mcp' a veces no termina el proceso tras
+    # imprimir su resumen (handles del MCP abiertos) y quemaría todo el LEFT. Si el
+    # log ya tiene 'run_id=' y 90s después el proceso sigue vivo, se mata: para ese
+    # punto el run completo ya está persistido en Mongo.
+    (
+      for _ in $(seq 1 $(( LEFT / 10 + 1 ))); do
+        sleep 10
+        grep -q '^run_id=' "${LOG}" 2>/dev/null && { sleep 90; pkill -TERM -f 'aitl run ' 2>/dev/null; break; }
+      done
+    ) &
+    WATCHDOG=$!
     ( cd "${ROOT}/start" && timeout --foreground "${LEFT}" \
         aitl run "${ORCH_PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
         --verify-cmd "${GATE_CMD}" </dev/null 2>&1 ) | tee "${LOG}"
+    RC=${PIPESTATUS[0]}   # capturar AQUÍ: kill/rm de abajo pisarían PIPESTATUS
+    kill "${WATCHDOG}" 2>/dev/null || true
     rm -f "${ROOT}/start/FASE-PROMPT.txt"
   else
     # c0-bare / c2-memory = Claude Code como agente vía run-host (modelo Claude sed'ado).
     timeout --foreground "${LEFT}" \
       aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
       --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+    RC=${PIPESTATUS[0]}
   fi
-  RC=${PIPESTATUS[0]}
   set -e
   DUR_S=$(( $(date +%s) - FT0 ))
   RUN_ID="$(grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "${LOG}" | tail -1 || true)"
