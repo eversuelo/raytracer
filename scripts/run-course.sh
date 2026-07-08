@@ -54,10 +54,15 @@ if [ "${COND}" != "c0-bare" ] && [ ! -f "${ROOT}/aitl-raytracer/.mcp.json" ]; th
   die "${COND} necesita aitl-raytracer/.mcp.json (credenciales del MCP)"
 fi
 if [ "${COND}" = "c2-orchestrator" ]; then
-  aitl models 2>/dev/null | grep -i 'lmstudio' | grep -qi 'activo' \
+  # OJO: el id efectivo sale de env > ~/.aitl/config.json (el .env del harness NO se
+  # carga desde start/, cwd de la corrida). Se resuelve desde start/ para ver lo mismo
+  # que verá `aitl run`, y se muestra para que un modelo equivocado no pase invisible.
+  LM_LINE="$(cd "${ROOT}/start" && aitl models 2>/dev/null | grep -i 'lmstudio' || true)"
+  echo "${LM_LINE}" | grep -qi 'activo' \
     || die "c2-orchestrator necesita LM Studio ACTIVO como orquestador:
-  lms server start && export LMSTUDIO_MODEL=…   (ver start/conditions/c2-orchestrator/MODELO.md)
+  lms server start && aitl config set LMSTUDIO_MODEL <id>   (ver start/conditions/c2-orchestrator/MODELO.md)
   luego 'aitl models' debe mostrar lmstudio ← activo"
+  echo "→ orquestador LM Studio: $(echo "${LM_LINE}" | awk '{print $3}')"
 fi
 for F in 0 1 2 3 4 5; do
   S="${ROOT}/start/sdd/phase-0${F}/spec.md"
@@ -168,8 +173,12 @@ ${FASE},${RUN_ID:-—},${RUN_STATUS},${GATE},${DUR_S}"
   # La EVIDENCIA de la corrida viaja en el mismo commit: PNG comprimidos + copia del
   # código + runshow + fila del CSV — así la rama conserva todo lo de cada corrida.
   git add start/rt.cpp start/Makefile start/CLAUDE.md start/.claude
-  git add data/metricas.csv 2>/dev/null || true
-  git add data/runs/*.png data/runs/*.rt.cpp data/runs/*.runshow.txt 2>/dev/null || true
+  # Un `git add` por patrón: un glob sin match aborta el add COMPLETO y la evidencia
+  # de los otros patrones se quedaría fuera del commit.
+  git add data/metricas.csv RESUMEN-METRICAS.md 2>/dev/null || true
+  git add data/runs/*.png 2>/dev/null || true
+  git add data/runs/*.rt.cpp 2>/dev/null || true
+  git add data/runs/*.runshow.txt 2>/dev/null || true
   git commit -q -m "curso ${CELL}: fase ${FASE} run=${RUN_STATUS} gate=${GATE} (${DUR_S}s, run ${RUN_ID:-sin-id})" || true
   git tag -f "celda/${CELL_TAG}/f${FASE}" >/dev/null 2>&1 || true
 
@@ -218,9 +227,11 @@ else
 fi
 
 # Cierre de evidencia de la celda en la rama: resumen + CSV + cualquier evidencia
-# rezagada de data/runs (p. ej. runshow del resumen).
-git add data/curso data/metricas.csv 2>/dev/null || true
-git add data/runs/*.png data/runs/*.rt.cpp data/runs/*.runshow.txt 2>/dev/null || true
+# rezagada de data/runs (p. ej. runshow del resumen). Un add por patrón (ver arriba).
+git add data/curso data/metricas.csv RESUMEN-METRICAS.md 2>/dev/null || true
+git add data/runs/*.png 2>/dev/null || true
+git add data/runs/*.rt.cpp 2>/dev/null || true
+git add data/runs/*.runshow.txt 2>/dev/null || true
 git commit -q -m "curso ${CELL}: evidencia final de la celda (${STOP_REASON}, ${TOTAL_S}s)" || true
 
 echo ""
