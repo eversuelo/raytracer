@@ -1,0 +1,49 @@
+{
+  "run_id": "bc6bbe4c-e3fd-4b13-801d-584709e77af3",
+  "project": "aitl-raytracer",
+  "model": "lmstudio",
+  "status": "done",
+  "started_at": "2026-07-08T16:09:14.777Z",
+  "ended_at": "2026-07-08T16:14:39.603Z",
+  "duration_ms": 324826,
+  "tokens": {
+    "input": 40499,
+    "output": 1205,
+    "total": 41704
+  },
+  "host_meta": null,
+  "spec": false,
+  "iters": 3,
+  "tool_calls": 4,
+  "gate_denials": 0,
+  "human_interventions": {
+    "count": 0,
+    "minutes": 0
+  },
+  "approvals": {
+    "count": 0,
+    "ms": 0
+  },
+  "supervision_minutes": 0,
+  "roles": [],
+  "decision_blocked": false,
+  "review_events": {
+    "review": 0,
+    "role_veto": 0,
+    "deliberation": 0
+  },
+  "event_counts": {
+    "hydrate": 1,
+    "skills_route": 1,
+    "loop_iter": 4,
+    "tool_call": 4,
+    "verify": 1,
+    "session_summary": 1
+  },
+  "hydrate": {
+    "memory": 6,
+    "decisions": 5,
+    "conventions": 0,
+    "repomap": 0
+  }
+}
