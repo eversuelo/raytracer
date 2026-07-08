@@ -35,7 +35,10 @@ command -v claude >/dev/null  || die "no encuentro 'claude' (Claude Code) en PAT
 command -v python3 >/dev/null || die "no encuentro 'python3'"
 python3 -c "import PIL" 2>/dev/null || die "falta Pillow: pip install pillow"
 [ -f "${ROOT}/aitl-raytracer/.mcp.json" ] || die "falta aitl-raytracer/.mcp.json (credenciales del MCP)"
-pgrep -f "run-course.sh" >/dev/null && die "hay otra celda corriendo (run-course.sh) — una a la vez"
+# Solo una INVOCACIÓN real (script + condición); un shell que apenas mencione el
+# nombre (monitor/cola) no debe disparar el preflight.
+pgrep -f 'run-course\.sh (c0-bare|c2-memory|c2-orchestrator)' >/dev/null \
+  && die "hay otra celda corriendo (run-course.sh) — una a la vez"
 # El id efectivo del orquestador sale de env > ~/.aitl/config.json (ver run-course.sh).
 LM_LINE="$(cd "${ROOT}" && aitl models 2>/dev/null | grep -i 'lmstudio' || true)"
 echo "${LM_LINE}" | grep -qi 'activo' \
