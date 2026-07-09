@@ -1,0 +1,2 @@
+fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,verify_1er,imagen_ok,adr,notas
+2026-07-09T13:30:30-06:00,c0-bare@haiku,0,030e1f87-4a0a-4afc-aac4-86c7d059ba5e,done,ok,150,25,10983,1086189,0.2341,,,,
