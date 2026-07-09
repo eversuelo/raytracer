@@ -11,3 +11,7 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T14:33:25-06:00,c2-memory@haiku,5,d7764605-0368-4adc-b511-bce2b128e539,done,fail,316,39,27305,2884524,0.5849,,,,
 2026-07-09T15:10:05-06:00,c2-orchestrator@haiku,0,af6c3496-834d-4487-a9e9-557996a72cd4,done,ok,280,2,263,32428,,,,,
 2026-07-09T15:17:40-06:00,c2-orchestrator@haiku,1,86fe49ba-b471-4312-b0b8-51e3a3c594d3,done,ok,441,2,587,33193,,,,,
+2026-07-09T21:05:40.295Z,c2-orchestrator@haiku,0,fe061794-a226-49de-8f97-202c53b304a9,error,,154,,0,0,,,,,sub-agente haiku delegado por af6c3496
+2026-07-09T21:10:19.073Z,c2-orchestrator@haiku,1,a8e0c411-5223-46d5-916e-bca9cc05d4de,done,,298,31,17222,1665076,0.3466,,,,sub-agente haiku delegado por 86fe49ba
+2026-07-09T21:17:57.254Z,c2-orchestrator@haiku,2,8df78c3e-7602-4d1b-8a06-2a885470b667,done,,141,20,9980,934722,0.2180,,,,sub-agente haiku delegado por 16e9b35c
+2026-07-09T15:23:02-06:00,c2-orchestrator@haiku,2,16e9b35c-818c-4392-a2a8-cb8430dd12d5,done,ok,300,2,383,33459,,,,,
