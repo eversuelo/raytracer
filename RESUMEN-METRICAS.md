@@ -1,6 +1,6 @@
 # Resumen de métricas — experimento raytracer (C0 vs C2)
 
-> Generado por `scripts/resumen.sh` el 2026-07-08T23:09:43-06:00 — **no editar a mano**.
+> Generado por `scripts/resumen.sh` el 2026-07-09T13:06:48-06:00 — **no editar a mano**.
 > Fuente única: `data/metricas.csv` (última corrida por celda) + crudos JSON en `data/runs/`.
 > `costo_pond` = costo comparable en USD (Cara B: host_meta.cost_usd real de Claude).
 
