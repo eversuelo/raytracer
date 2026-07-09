@@ -67,7 +67,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "aitl hydrate --project aitl-raytracer --no-vector"
+            "command": "aitl hydrate --project aitl-raytracer-orq --no-vector"
           }
         ]
       }
@@ -77,7 +77,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "aitl capture-session --project aitl-raytracer"
+            "command": "aitl capture-session --project aitl-raytracer-orq"
           }
         ]
       }
