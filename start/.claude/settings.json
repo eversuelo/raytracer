@@ -1,7 +1,7 @@
 {
   "model": "claude-haiku-4-5-20251001",
-  "enableAllProjectMcpServers": false,
-  "disabledMcpjsonServers": [
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
     "aitl-js"
   ],
   "permissions": {
@@ -62,6 +62,16 @@
     ]
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "aitl hydrate --project aitl-raytracer --no-vector"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

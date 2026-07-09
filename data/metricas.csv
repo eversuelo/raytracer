@@ -3,3 +3,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T13:35:28-06:00,c0-bare@haiku,1,767978b4-b69a-4bf3-8528-64fd46e1cd70,done,ok,282,34,16072,1700684,0.3386,,,,
 2026-07-09T13:38:35-06:00,c0-bare@haiku,2,5104e70e-ca82-40f3-9521-dd9ccea74025,done,ok,166,18,13097,660791,0.1965,,,,
 2026-07-09T13:54:49-06:00,c0-bare@haiku,3,793072b1-f00c-48c0-8753-7c41026fb2f5,done,fail,962,103,63576,10195955,1.6917,,,,
+2026-07-09T13:58:07-06:00,c2-memory@haiku,0,3d88ff86-54fb-44d8-8a85-9cb7ffd58c05,done,ok,85,13,6323,448358,0.1385,,,,
