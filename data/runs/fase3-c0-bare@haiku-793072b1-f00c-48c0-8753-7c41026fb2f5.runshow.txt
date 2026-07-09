@@ -1,0 +1,52 @@
+{
+  "run_id": "793072b1-f00c-48c0-8753-7c41026fb2f5",
+  "project": "aitl-raytracer",
+  "model": "host:claude-code",
+  "status": "done",
+  "started_at": "2026-07-09T19:38:40.839Z",
+  "ended_at": "2026-07-09T19:54:41.494Z",
+  "duration_ms": 960655,
+  "tokens": {
+    "input": 10132379,
+    "output": 63576,
+    "total": 10195955
+  },
+  "host_meta": {
+    "cost_usd": 1.6917272500000005,
+    "num_turns": 103,
+    "duration_ms": 958718,
+    "duration_api_ms": 926833,
+    "session_id": "b1b41756-1021-4e4b-b5b9-c2e5d568b4f3",
+    "model": null,
+    "is_error": false,
+    "raw_input_tokens": 826,
+    "cache": {
+      "creation": 124646,
+      "read": 10006907
+    }
+  },
+  "spec": false,
+  "iters": 103,
+  "tool_calls": 0,
+  "gate_denials": 0,
+  "human_interventions": {
+    "count": 0,
+    "minutes": 0
+  },
+  "approvals": {
+    "count": 0,
+    "ms": 0
+  },
+  "supervision_minutes": 0,
+  "roles": [],
+  "decision_blocked": false,
+  "review_events": {
+    "review": 0,
+    "role_veto": 0,
+    "deliberation": 0
+  },
+  "event_counts": {
+    "spawn": 1
+  },
+  "hydrate": null
+}
