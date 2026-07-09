@@ -1,3 +1,4 @@
 fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,verify_1er,imagen_ok,adr,notas
 2026-07-08T23:09:43-06:00,c2-local@qwen2.5-coder-7b-instruct,0,c38e4d2d-dea8-4428-a6f6-4a46ae73cb47,done,fail,851,18,7287,307249,,,,,
 2026-07-09T13:06:48-06:00,c0-bare@haiku,0,a8485725-d92f-4e12-b904-c42c291d8eb7,done,ok,153,26,10025,1120964,0.237,,,,
+2026-07-09T13:07:12-06:00,c0-bare@haiku,1,8c4acad4-953b-46dd-a37d-7dc751aa46af,done,fail,19,1,942,29095,0.0318,,,,
