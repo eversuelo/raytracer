@@ -4,7 +4,8 @@
 # final en markdown escrito por el propio Claude de la celda.
 #
 # Uso:
-#   scripts/run-course.sh <c0-bare|c2-memory|c2-orchestrator> <sonnet|opus>
+#   scripts/run-course.sh <c0-bare|c2-memory|c2-orchestrator> <sonnet|opus|haiku>
+#   scripts/run-course.sh c2-local <id de modelo LM Studio>   # p. ej. qwen2.5-coder-7b-instruct
 #
 #   c0-bare / c2-memory  → Claude Code como agente vía run-host (modelo Claude = 2º arg).
 #   c2-orchestrator      → loop nativo del harness como ORQUESTADOR con modelo local de
@@ -12,6 +13,10 @@
 #                          (2º arg = tier del sub-agente). Requiere `lms server start`
 #                          + `aitl models` mostrando lmstudio ← activo (ver
 #                          start/conditions/c2-orchestrator/MODELO.md).
+#   c2-local             → curso 100 % LOCAL: el loop nativo implementa TODAS las fases
+#                          con el modelo de LM Studio del 2º arg (sin Claude Code).
+#                          Condición exploratoria, fuera de las 3 oficiales — ver
+#                          start/conditions/c2-local/MODELO.md.
 #
 # Variables de entorno:
 #   COURSE_MIN=60    tope global de la celda en minutos (default 60)
@@ -25,21 +30,31 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COND="${1:?c0-bare | c2-memory | c2-orchestrator}"
-MODEL_KEY="${2:?sonnet | opus}"
+COND="${1:?c0-bare | c2-memory | c2-orchestrator | c2-local}"
+MODEL_KEY="${2:?sonnet | opus | haiku — o id de LM Studio si la condición es c2-local}"
 COURSE_MIN="${COURSE_MIN:-60}"
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-case "${COND}" in c0-bare|c2-memory|c2-orchestrator) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory|c2-orchestrator)";; esac
-case "${MODEL_KEY}" in
-  sonnet) MODEL_ID="claude-sonnet-5" ;;
-  opus)   MODEL_ID="claude-opus-4-8" ;;
-  *) die "modelo inválido: ${MODEL_KEY} (sonnet|opus)" ;;
-esac
+case "${COND}" in c0-bare|c2-memory|c2-orchestrator|c2-local) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory|c2-orchestrator|c2-local)";; esac
+if [ "${COND}" = "c2-local" ]; then
+  # Curso 100 % local: el 2º arg es el id del modelo en LM Studio (`lms ls`). El export
+  # fija el modelo efectivo de TODA la celda: env > perfil > .env > config.json
+  # (precedencia ADR-0061 del harness).
+  MODEL_ID="${MODEL_KEY}"
+  export LMSTUDIO_MODEL="${MODEL_ID}"
+else
+  case "${MODEL_KEY}" in
+    sonnet) MODEL_ID="claude-sonnet-5" ;;
+    opus)   MODEL_ID="claude-opus-4-8" ;;
+    haiku)  MODEL_ID="claude-haiku-4-5-20251001" ;;
+    *) die "modelo inválido: ${MODEL_KEY} (sonnet|opus|haiku)" ;;
+  esac
+fi
 
-CELL="${COND}@${MODEL_KEY}"
-CELL_TAG="${COND}-${MODEL_KEY}"          # apto para nombres de tag/ref (sin '@')
+MODEL_SAFE="${MODEL_KEY//\//-}"           # ids de LM Studio pueden traer '/' (qwen/qwen3-4b)
+CELL="${COND}@${MODEL_SAFE}"
+CELL_TAG="${COND}-${MODEL_SAFE}"          # apto para nombres de tag/ref (sin '@')
 BRANCH="curso"                            # rama ÚNICA para todas las celdas
 STAMP="$(date +%Y%m%d-%H%M%S)"
 LOG_DIR="${ROOT}/data/logs"; mkdir -p "${LOG_DIR}"
@@ -47,22 +62,25 @@ CURSO_DIR="${ROOT}/data/curso"; mkdir -p "${CURSO_DIR}"
 
 # ── Preflight ────────────────────────────────────────────────────────────────
 command -v aitl >/dev/null   || die "no encuentro 'aitl' en PATH"
-command -v claude >/dev/null || die "no encuentro 'claude' (Claude Code) en PATH"
+if [ "${COND}" != "c2-local" ]; then  # c2-local no usa Claude Code en ningún paso
+  command -v claude >/dev/null || die "no encuentro 'claude' (Claude Code) en PATH"
+fi
 command -v python3 >/dev/null || die "no encuentro 'python3' (para PPM→PNG y métricas)"
 python3 -c "import PIL" 2>/dev/null || die "falta Pillow (PPM→PNG): pip install pillow"
 if [ "${COND}" != "c0-bare" ] && [ ! -f "${ROOT}/aitl-raytracer/.mcp.json" ]; then
   die "${COND} necesita aitl-raytracer/.mcp.json (credenciales del MCP)"
 fi
-if [ "${COND}" = "c2-orchestrator" ]; then
+if [ "${COND}" = "c2-orchestrator" ] || [ "${COND}" = "c2-local" ]; then
   # OJO: el id efectivo sale de env > ~/.aitl/config.json (el .env del harness NO se
-  # carga desde start/, cwd de la corrida). Se resuelve desde start/ para ver lo mismo
-  # que verá `aitl run`, y se muestra para que un modelo equivocado no pase invisible.
+  # carga desde start/, cwd de la corrida; c2-local ya exportó LMSTUDIO_MODEL). Se
+  # resuelve desde start/ para ver lo mismo que verá `aitl run`, y se muestra para que
+  # un modelo equivocado no pase invisible.
   LM_LINE="$(cd "${ROOT}/start" && aitl models 2>/dev/null | grep -i 'lmstudio' || true)"
   echo "${LM_LINE}" | grep -qi 'activo' \
-    || die "c2-orchestrator necesita LM Studio ACTIVO como orquestador:
-  lms server start && aitl config set LMSTUDIO_MODEL <id>   (ver start/conditions/c2-orchestrator/MODELO.md)
+    || die "${COND} necesita LM Studio ACTIVO:
+  lms server start && aitl config set LMSTUDIO_MODEL <id>   (ver start/conditions/${COND}/MODELO.md)
   luego 'aitl models' debe mostrar lmstudio ← activo"
-  echo "→ orquestador LM Studio: $(echo "${LM_LINE}" | awk '{print $3}')"
+  echo "→ modelo LM Studio: $(echo "${LM_LINE}" | awk '{print $3}')"
 fi
 for F in 0 1 2 3 4 5; do
   S="${ROOT}/start/sdd/phase-0${F}/spec.md"
@@ -89,10 +107,16 @@ cp start/sdd/base/rt.cpp   start/rt.cpp
 cp start/sdd/base/Makefile start/Makefile
 mkdir -p start/out
 cp "start/conditions/${COND}/CLAUDE.md" start/CLAUDE.md
-mkdir -p start/.claude
-cp "start/conditions/${COND}/.claude/settings.json" start/.claude/settings.json
-sed -i "s/\"model\": *\"[^\"]*\"/\"model\": \"${MODEL_ID}\"/" start/.claude/settings.json
-grep -q "\"${MODEL_ID}\"" start/.claude/settings.json || die "no pude fijar el modelo en start/.claude/settings.json"
+if [ "${COND}" = "c2-local" ]; then
+  # Sin agente claude-code: el loop nativo no lee .claude/settings.json. Se retira
+  # para que la evidencia de la celda no arrastre settings de una celda anterior.
+  rm -rf start/.claude
+else
+  mkdir -p start/.claude
+  cp "start/conditions/${COND}/.claude/settings.json" start/.claude/settings.json
+  sed -i "s/\"model\": *\"[^\"]*\"/\"model\": \"${MODEL_ID}\"/" start/.claude/settings.json
+  grep -q "\"${MODEL_ID}\"" start/.claude/settings.json || die "no pude fijar el modelo en start/.claude/settings.json"
+fi
 rm -f start/*.ppm start/*.png
 if [ "${COND}" != "c0-bare" ]; then
   cp aitl-raytracer/.mcp.json start/.mcp.json   # gitignored: lleva credenciales
@@ -123,20 +147,21 @@ for FASE in 0 1 2 3 4 5; do
 
   FT0=$(date +%s)
   set +e
-  if [ "${COND}" = "c2-orchestrator" ]; then
-    # Orquestador = loop NATIVO del harness con modelo local (LM Studio, LMSTUDIO_MODEL);
-    # delega en sub-agentes claude-code (start/.claude/settings.json). --verify-cmd cierra
-    # el loop cuando el gate objetivo queda verde. Corre desde start/ (cwd del proyecto).
-    #
-    # La delegación NO es automática: bajo `aitl run` la única vía es que el MODELO
-    # decida invocar `aitl run-host --host claude-code` con su tool de shell. Por eso el
-    # prompt del orquestador son instrucciones de orquestación explícitas, y el prompt
-    # de la fase viaja en FASE-PROMPT.txt (citarlo multilínea dentro del comando shell
-    # sería frágil). El ShellTool default es 120s: el prompt exige timeout=3000.
+  if [ "${COND}" = "c2-orchestrator" ] || [ "${COND}" = "c2-local" ]; then
+    # Loop NATIVO del harness con modelo local (LM Studio, LMSTUDIO_MODEL); --verify-cmd
+    # cierra el loop cuando el gate objetivo queda verde. Corre desde start/ (cwd).
+    #   c2-orchestrator → el modelo local ORQUESTA y delega en sub-agentes claude-code.
+    #   c2-local        → el modelo local IMPLEMENTA él mismo con sus tools nativas.
     GATE_CMD="make"
     [ -f "${ROOT}/start/sdd/phase-0${FASE}/check.sh" ] && GATE_CMD="make && bash sdd/phase-0${FASE}/check.sh"
-    printf '%s\n' "${PROMPT}" > "${ROOT}/start/FASE-PROMPT.txt"
-    ORCH_PROMPT="Eres el ORQUESTADOR de esta fase. NO escribas ni edites código tú mismo (no uses write_file).
+    if [ "${COND}" = "c2-orchestrator" ]; then
+      # La delegación NO es automática: bajo `aitl run` la única vía es que el MODELO
+      # decida invocar `aitl run-host --host claude-code` con su tool de shell. Por eso el
+      # prompt del orquestador son instrucciones de orquestación explícitas, y el prompt
+      # de la fase viaja en FASE-PROMPT.txt (citarlo multilínea dentro del comando shell
+      # sería frágil). El ShellTool default es 120s: el prompt exige timeout=3000.
+      printf '%s\n' "${PROMPT}" > "${ROOT}/start/FASE-PROMPT.txt"
+      RUN_PROMPT="Eres el ORQUESTADOR de esta fase. NO escribas ni edites código tú mismo (no uses write_file).
 La tarea completa de la fase está en el archivo FASE-PROMPT.txt de tu directorio actual.
 Sigue EXACTAMENTE estos pasos:
 1. DELEGA la implementación al sub-agente Claude Code: llama a tu herramienta shell con timeout=3000 y este comando:
@@ -145,6 +170,16 @@ aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project aitl-raytracer --host claude
 3. Si la verificación falla, DELEGA una corrección (shell, timeout=3000), citando el error resumido del gate:
 aitl run-host 'El gate de la fase fallo con este error: <resumen del error>. Diagnostica y corrige rt.cpp hasta que ${GATE_CMD} quede verde.' --project aitl-raytracer --host claude-code --cwd .
 Máximo 3 delegaciones en total. Tu éxito se mide únicamente con el gate en verde."
+    else
+      # c2-local: el MISMO modelo implementa. El protocolo de tools va en el prompt
+      # porque los coder locales (qwen2.5) tienden a volcar el archivo en el texto.
+      RUN_PROMPT="Implementa TÚ MISMO la tarea de abajo, en el directorio actual, usando tus herramientas: read_file para leer, edit_file para modificar código existente (reemplazos puntuales old_string→new_string), write_file SOLO para archivos nuevos, y shell para compilar/probar. NUNCA imprimas el contenido de un archivo en tu respuesta: toda edición va por edit_file. NO delegues (no uses 'aitl run-host' ni otros agentes).
+Cuando creas haber terminado, verifica con tu shell (timeout=600): ${GATE_CMD}
+Tu éxito se mide únicamente con ese gate en verde.
+
+── TAREA DE LA FASE ──
+${PROMPT}"
+    fi
     # Watchdog anti-cuelgue: 'aitl run --mcp' a veces no termina el proceso tras
     # imprimir su resumen (handles del MCP abiertos) y quemaría todo el LEFT. Si el
     # log ya tiene 'run_id=' y 90s después el proceso sigue vivo, se mata: para ese
@@ -156,9 +191,13 @@ Máximo 3 delegaciones en total. Tu éxito se mide únicamente con el gate en ve
       done
     ) &
     WATCHDOG=$!
+    # c2-local implementa (no rutea): necesita más vueltas de trabajo que el default
+    # de orquestador; el tope real sigue siendo el timeout de la fase.
+    EXTRA_ARGS=""
+    [ "${COND}" = "c2-local" ] && EXTRA_ARGS="--max-iters 40"
     ( cd "${ROOT}/start" && timeout --foreground "${LEFT}" \
-        aitl run "${ORCH_PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
-        --verify-cmd "${GATE_CMD}" </dev/null 2>&1 ) | tee "${LOG}"
+        aitl run "${RUN_PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
+        --verify-cmd "${GATE_CMD}" ${EXTRA_ARGS} </dev/null 2>&1 ) | tee "${LOG}"
     RC=${PIPESTATUS[0]}   # capturar AQUÍ: kill/rm de abajo pisarían PIPESTATUS
     kill "${WATCHDOG}" 2>/dev/null || true
     rm -f "${ROOT}/start/FASE-PROMPT.txt"
@@ -202,7 +241,8 @@ ${FASE},${RUN_ID:-—},${RUN_STATUS},${GATE},${DUR_S}"
   # Commit del avance + TAG de la fase (rama única `curso`; renders crudos gitignored).
   # La EVIDENCIA de la corrida viaja en el mismo commit: PNG comprimidos + copia del
   # código + runshow + fila del CSV — así la rama conserva todo lo de cada corrida.
-  git add start/rt.cpp start/Makefile start/CLAUDE.md start/.claude
+  git add start/rt.cpp start/Makefile start/CLAUDE.md
+  if [ -d start/.claude ]; then git add start/.claude; fi   # c2-local corre sin .claude/
   # Un `git add` por patrón: un glob sin match aborta el add COMPLETO y la evidencia
   # de los otros patrones se quedaría fuera del commit.
   git add data/metricas.csv RESUMEN-METRICAS.md 2>/dev/null || true
@@ -243,11 +283,18 @@ Escribe el archivo RESUMEN-CURSO.md en la raíz del proyecto (tu cwd) con, en es
 5. Autoevaluación breve: qué harías distinto con más tiempo.
 Usa 'git log --oneline' y los archivos del proyecto para reconstruir el detalle.
 No modifiques rt.cpp ni ningún otro archivo: SOLO crea RESUMEN-CURSO.md y termina."
-echo "→ generando resumen de la celda (lo escribe el propio Claude)…"
+echo "→ generando resumen de la celda (lo escribe el propio agente de la celda)…"
 set +e
-timeout --foreground 600 \
-  aitl run-host "${RESUMEN_PROMPT}" --project aitl-raytracer --host claude-code \
-  --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
+if [ "${COND}" = "c2-local" ]; then
+  # El resumen también lo escribe el modelo local (write_file); 900s: los 7B van lentos.
+  ( cd "${ROOT}/start" && timeout --foreground 900 \
+      aitl run "${RESUMEN_PROMPT}" --project aitl-raytracer --model lmstudio \
+      </dev/null 2>&1 ) | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
+else
+  timeout --foreground 600 \
+    aitl run-host "${RESUMEN_PROMPT}" --project aitl-raytracer --host claude-code \
+    --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
+fi
 set -e
 if [ -f "${ROOT}/start/RESUMEN-CURSO.md" ]; then
   mv "${ROOT}/start/RESUMEN-CURSO.md" "${RESUMEN_DST}"
