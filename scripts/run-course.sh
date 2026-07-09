@@ -203,9 +203,14 @@ ${PROMPT}"
     rm -f "${ROOT}/start/FASE-PROMPT.txt"
   else
     # c0-bare / c2-memory = Claude Code como agente vía run-host (modelo Claude sed'ado).
+    # c0-bare es "sin harness": --no-hydrate evita inyectar memoria/ADRs del store al
+    # prompt (contaminaría el baseline con soluciones de fases/celdas previas) y
+    # --no-spec-synthesis evita que la celda ESCRIBA en el store de conocimiento.
+    HYDRATE_ARGS=""
+    [ "${COND}" = "c0-bare" ] && HYDRATE_ARGS="--no-hydrate --no-spec-synthesis"
     timeout --foreground "${LEFT}" \
       aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
-      --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+      --cwd "${ROOT}/start" ${HYDRATE_ARGS} </dev/null 2>&1 | tee "${LOG}"
     RC=${PIPESTATUS[0]}
   fi
   set -e
@@ -291,9 +296,12 @@ if [ "${COND}" = "c2-local" ]; then
       aitl run "${RESUMEN_PROMPT}" --project aitl-raytracer --model lmstudio \
       </dev/null 2>&1 ) | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
 else
+  # Mismo aislamiento que en las fases: la celda C0 no lee ni escribe el store.
+  HYDRATE_ARGS=""
+  [ "${COND}" = "c0-bare" ] && HYDRATE_ARGS="--no-hydrate --no-spec-synthesis"
   timeout --foreground 600 \
     aitl run-host "${RESUMEN_PROMPT}" --project aitl-raytracer --host claude-code \
-    --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
+    --cwd "${ROOT}/start" ${HYDRATE_ARGS} </dev/null 2>&1 | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
 fi
 set -e
 if [ -f "${ROOT}/start/RESUMEN-CURSO.md" ]; then
