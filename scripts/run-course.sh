@@ -52,6 +52,12 @@ else
   esac
 fi
 
+# Project MCP por condición: el orquestador corre bajo su PROPIO project (aislado del
+# store de c0/c2-memory: lanza muchos sub-agentes y no debe heredar ni ensuciar la
+# memoria de las otras celdas). El CLAUDE.md de su plantilla apunta a la misma clave.
+PROJECT="aitl-raytracer"
+[ "${COND}" = "c2-orchestrator" ] && PROJECT="aitl-raytracer-orq"
+
 MODEL_SAFE="${MODEL_KEY//\//-}"           # ids de LM Studio pueden traer '/' (qwen/qwen3-4b)
 CELL="${COND}@${MODEL_SAFE}"
 CELL_TAG="${COND}-${MODEL_SAFE}"          # apto para nombres de tag/ref (sin '@')
@@ -165,10 +171,10 @@ for FASE in 0 1 2 3 4 5; do
 La tarea completa de la fase está en el archivo FASE-PROMPT.txt de tu directorio actual.
 Sigue EXACTAMENTE estos pasos:
 1. DELEGA la implementación al sub-agente Claude Code: llama a tu herramienta shell con timeout=3000 y este comando:
-aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project aitl-raytracer --host claude-code --cwd .
+aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project ${PROJECT} --host claude-code --cwd .
 2. VERIFICA con tu herramienta shell (timeout=600): ${GATE_CMD}
 3. Si la verificación falla, DELEGA una corrección (shell, timeout=3000), citando el error resumido del gate:
-aitl run-host 'El gate de la fase fallo con este error: <resumen del error>. Diagnostica y corrige rt.cpp hasta que ${GATE_CMD} quede verde.' --project aitl-raytracer --host claude-code --cwd .
+aitl run-host 'El gate de la fase fallo con este error: <resumen del error>. Diagnostica y corrige rt.cpp hasta que ${GATE_CMD} quede verde.' --project ${PROJECT} --host claude-code --cwd .
 Máximo 3 delegaciones en total. Tu éxito se mide únicamente con el gate en verde."
     else
       # c2-local: el MISMO modelo implementa. El protocolo de tools va en el prompt
@@ -196,7 +202,7 @@ ${PROMPT}"
     EXTRA_ARGS=""
     [ "${COND}" = "c2-local" ] && EXTRA_ARGS="--max-iters 40"
     ( cd "${ROOT}/start" && timeout --foreground "${LEFT}" \
-        aitl run "${RUN_PROMPT}" --project aitl-raytracer --model lmstudio --mcp \
+        aitl run "${RUN_PROMPT}" --project ${PROJECT} --model lmstudio --mcp \
         --verify-cmd "${GATE_CMD}" ${EXTRA_ARGS} </dev/null 2>&1 ) | tee "${LOG}"
     RC=${PIPESTATUS[0]}   # capturar AQUÍ: kill/rm de abajo pisarían PIPESTATUS
     kill "${WATCHDOG}" 2>/dev/null || true
@@ -209,7 +215,7 @@ ${PROMPT}"
     HYDRATE_ARGS=""
     [ "${COND}" = "c0-bare" ] && HYDRATE_ARGS="--no-hydrate --no-spec-synthesis"
     timeout --foreground "${LEFT}" \
-      aitl run-host "${PROMPT}" --project aitl-raytracer --host claude-code \
+      aitl run-host "${PROMPT}" --project ${PROJECT} --host claude-code \
       --cwd "${ROOT}/start" ${HYDRATE_ARGS} </dev/null 2>&1 | tee "${LOG}"
     RC=${PIPESTATUS[0]}
   fi
@@ -293,14 +299,14 @@ set +e
 if [ "${COND}" = "c2-local" ]; then
   # El resumen también lo escribe el modelo local (write_file); 900s: los 7B van lentos.
   ( cd "${ROOT}/start" && timeout --foreground 900 \
-      aitl run "${RESUMEN_PROMPT}" --project aitl-raytracer --model lmstudio \
+      aitl run "${RESUMEN_PROMPT}" --project ${PROJECT} --model lmstudio \
       </dev/null 2>&1 ) | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
 else
   # Mismo aislamiento que en las fases: la celda C0 no lee ni escribe el store.
   HYDRATE_ARGS=""
   [ "${COND}" = "c0-bare" ] && HYDRATE_ARGS="--no-hydrate --no-spec-synthesis"
   timeout --foreground 600 \
-    aitl run-host "${RESUMEN_PROMPT}" --project aitl-raytracer --host claude-code \
+    aitl run-host "${RESUMEN_PROMPT}" --project ${PROJECT} --host claude-code \
     --cwd "${ROOT}/start" ${HYDRATE_ARGS} </dev/null 2>&1 | tee "${LOG_DIR}/curso-${CELL_TAG}-resumen-${STAMP}.log"
 fi
 set -e
