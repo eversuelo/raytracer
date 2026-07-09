@@ -43,14 +43,15 @@ public:
 	Ray(Point o_, Vector d_) : o(o_), d(d_) {} // constructor
 };
 
-class Sphere 
+class Sphere
 {
 public:
 	double r;	// radio de la esfera
 	Point p;	// posicion
-	Color c;	// color  
+	Color c;	// albedo
+	Color ke;	// emision
 
-	Sphere(double r_, Point p_, Color c_): r(r_), p(p_), c(c_) {}
+	Sphere(double r_, Point p_, Color c_, Color ke_ = Color()): r(r_), p(p_), c(c_), ke(ke_) {}
   
 	// PROYECTO 1
 	// determina si el rayo intersecta a esta esfera
@@ -72,15 +73,15 @@ public:
 };
 
 Sphere spheres[] = {
-	//Escena: radio, posicion, color 
-	Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25)), // pared izq
-	Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75)), // pared der
-	Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.75, .75, .75)), // pared detras
-	Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.75, .75, .75)), // suelo
-	Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .75)), // techo
-	Sphere(16.5, Point(-23, -24.3, -34.6), Color(.999, .999, .999)), // esfera abajo-izq
-	Sphere(16.5, Point(23, -24.3, -3.6),   Color(.999, .999, .999) ), // esfera abajo-der
-	Sphere(10.5, Point(0, 24.3, 0),        Color(1, 1, 1)) // esfera arriba
+	// radio, posicion, albedo, emision
+	Sphere(1e5,  Point(-1e5 - 49, 0, 0),   Color(.75, .25, .25), Color(0, 0, 0)), // pared izq
+	Sphere(1e5,  Point(1e5 + 49, 0, 0),    Color(.25, .25, .75), Color(0, 0, 0)), // pared der
+	Sphere(1e5,  Point(0, 0, -1e5 - 81.6), Color(.25, .75, .25), Color(0, 0, 0)), // pared detras
+	Sphere(1e5,  Point(0, -1e5 - 40.8, 0), Color(.25, .75, .75), Color(0, 0, 0)), // suelo
+	Sphere(1e5,  Point(0, 1e5 + 40.8, 0),  Color(.75, .75, .25), Color(0, 0, 0)), // techo
+	Sphere(16.5, Point(-23, -24.3, -34.6), Color(.2, .3, .4), Color(0, 0, 0)), // esfera abajo-izq
+	Sphere(16.5, Point(23, -24.3, -3.6),   Color(.4, .3, .2), Color(0, 0, 0)), // esfera abajo-der
+	Sphere(10.5, Point(0, 24.3, 0),        Color(1, 1, 1), Color(10, 10, 10)) // esfera arriba (emisor)
 };
 
 // limita el valor de x a [0,1]
@@ -97,10 +98,9 @@ inline int toDisplayValue(const double x) {
 	return int( pow( clamp(x), 1.0/2.2 ) * 255 + .5);
 }
 
-// Modo de shading: 0 = normal, 1 = distance
-int shadeMode = 0;
+// Tipo de muestreador
+enum SamplerType { UNIFORM_SPHERE, UNIFORM_HEMI, COSINE_HEMI };
 
-// PROYECTO 1
 // calcular la intersección del rayo r con todas las esferas
 // regresar true si hubo una intersección, falso de otro modo
 // almacenar en t la distancia sobre el rayo en que sucede la interseccion
@@ -119,6 +119,57 @@ inline bool intersect(const Ray &r, double &t, int &id) {
 		}
 	}
 	return found;
+}
+
+// Generar dirección local en hemisfera/esfera según muestreador
+// Retorna (wx, wy, wz) en coordenadas locales
+// Calcula el pdf de la dirección muestreada
+Vector sampleDirection(SamplerType sampler, double xi1, double xi2, double &pdf) {
+	double phi = 2.0 * M_PI * xi2;
+	double cosPhi = cos(phi);
+	double sinPhi = sin(phi);
+
+	Vector localDir;
+
+	if (sampler == UNIFORM_SPHERE) {
+		// cosθ = 1 − 2ξ1
+		double cosTheta = 1.0 - 2.0 * xi1;
+		double sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+		localDir = Vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+		pdf = 1.0 / (4.0 * M_PI);
+	} else if (sampler == UNIFORM_HEMI) {
+		// cosθ = ξ1
+		double cosTheta = xi1;
+		double sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+		localDir = Vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+		pdf = 1.0 / (2.0 * M_PI);
+	} else { // COSINE_HEMI
+		// cosθ = √(1 − ξ1)
+		double cosTheta = sqrt(1.0 - xi1);
+		double sinTheta = sqrt(xi1);
+		localDir = Vector(sinTheta * cosPhi, sinTheta * sinPhi, cosTheta);
+		pdf = cosTheta / M_PI;
+	}
+
+	return localDir;
+}
+
+// Convertir dirección local a global usando base ortonormal sobre normal n
+Vector localToGlobal(const Vector &n, const Vector &localDir) {
+	Vector t, s;
+
+	if (fabs(n.x) > fabs(n.y)) {
+		double invLen = 1.0 / sqrt(n.x * n.x + n.z * n.z);
+		t = Vector(n.z * invLen, 0.0, -n.x * invLen);
+	} else {
+		double invLen = 1.0 / sqrt(n.y * n.y + n.z * n.z);
+		t = Vector(0.0, n.z * invLen, -n.y * invLen);
+	}
+
+	s = t % n;
+
+	// w = s · wx + t · wy + n · wz
+	return s * localDir.x + t * localDir.y + n * localDir.z;
 }
 
 // Calcula el valor de color para el rayo dado

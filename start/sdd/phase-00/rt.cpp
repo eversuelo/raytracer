@@ -1,0 +1,1 @@
+// Contenido inicial del archivo rt.cpp
