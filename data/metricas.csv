@@ -9,3 +9,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T14:14:41-06:00,c2-memory@haiku,3,e41f49e0-627f-4108-b3f6-344eaff8e86b,done,ok,517,46,36396,3450266,0.7071,,,,
 2026-07-09T14:27:05-06:00,c2-memory@haiku,4,a4d962dc-2e06-44da-828c-c802690a2b5b,done,ok,730,69,57555,5835585,1.0619,,,,
 2026-07-09T14:33:25-06:00,c2-memory@haiku,5,d7764605-0368-4adc-b511-bce2b128e539,done,fail,316,39,27305,2884524,0.5849,,,,
+2026-07-09T15:10:05-06:00,c2-orchestrator@haiku,0,af6c3496-834d-4487-a9e9-557996a72cd4,done,ok,280,2,263,32428,,,,,
