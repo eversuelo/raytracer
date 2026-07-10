@@ -1,0 +1,59 @@
+{
+  "run_id": "f7075b34-8ca2-45ab-92d9-24e397579b58",
+  "project": "aitl-raytracer-orq-sonnet",
+  "model": "host:claude-code",
+  "status": "done",
+  "started_at": "2026-07-10T04:01:00.811Z",
+  "ended_at": "2026-07-10T04:04:39.695Z",
+  "duration_ms": 218884,
+  "tokens": {
+    "input": 817808,
+    "output": 8547,
+    "total": 826355
+  },
+  "host_meta": {
+    "cost_usd": 0.8585138999999999,
+    "num_turns": 17,
+    "duration_ms": 211731,
+    "duration_api_ms": 114311,
+    "session_id": "60da44d9-3757-4e54-8286-5d982665d20f",
+    "model": null,
+    "is_error": false,
+    "raw_input_tokens": 8931,
+    "cache": {
+      "creation": 80674,
+      "read": 728203
+    }
+  },
+  "spec": false,
+  "iters": 17,
+  "tool_calls": 0,
+  "gate_denials": 0,
+  "human_interventions": {
+    "count": 0,
+    "minutes": 0
+  },
+  "approvals": {
+    "count": 0,
+    "ms": 0
+  },
+  "supervision_minutes": 0,
+  "roles": [],
+  "decision_blocked": false,
+  "review_events": {
+    "review": 0,
+    "role_veto": 0,
+    "deliberation": 0
+  },
+  "event_counts": {
+    "hydrate": 1,
+    "spawn": 1
+  },
+  "hydrate": {
+    "host": "claude-code",
+    "memory": 0,
+    "decisions": 0,
+    "conventions": 0,
+    "repomap": 0
+  }
+}

@@ -20,3 +20,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T19:31:43-06:00,c2-orchestrator@haiku,3,,timeout,fail,14915,,,,,,,,dur incluye ~3.5h de suspensión del equipo (despierto ≈42 min); gate final corrió con rt.cpp a medio editar tras el kill; último estado real: arealight Δ=3.15 vs 2.00
 2026-07-09T21:51:27.704Z,c2-orchestrator@haiku-session,3,b0ee8d06-8772-4a5d-a815-8a8442240345,done,,13288,62,66237,5778355,1.2660,,,,sub-agente haiku delegado por 6c644f3a (3ª delegación); dur incluye ~3.5h de suspensión (despierto ≈17 min); matado por timeout de la celda a medio editar
 2026-07-10T01:31:49.363Z,c2-orchestrator@haiku-session,-,d2f2394d-7628-4cf6-93a5-69787febde67,done,,81,7,5315,161418,0.1032,,,,agente del RESUMEN de la celda (run-host post-curso; no sub-agente de fase)
+2026-07-09T22:04:43-06:00,c2-orch-claude@sonnet,0,f7075b34-8ca2-45ab-92d9-24e397579b58,done,ok,220,17,8547,826355,0.8585,,,,

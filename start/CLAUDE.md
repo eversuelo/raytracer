@@ -1,4 +1,4 @@
-# CLAUDE.md — aitl-raytracer-orq (condición C2-orquestador: harness Max-Capacity)
+# CLAUDE.md — aitl-raytracer-orq-sonnet (condición C2-orquestador: orquestador Claude sonnet → sub-agentes haiku)
 
 ## Identidad del proyecto (leer primero)
 
@@ -10,10 +10,10 @@ sub-agentes (`run-host`). Este archivo lo leen los sub-agentes que el orquestado
 
 | Campo | Valor |
 |-------|-------|
-| **Clave MCP canónica del proyecto** | `aitl-raytracer-orq` |
+| **Clave MCP canónica del proyecto** | `aitl-raytracer-orq-sonnet` |
 | **Software (jerarquía MCP)** | `raytracer` |
 
-**Regla para toda llamada al MCP `aitl-js`:** pasa `project: "aitl-raytracer-orq"`.
+**Regla para toda llamada al MCP `aitl-js`:** pasa `project: "aitl-raytracer-orq-sonnet"`.
 NO uses `raytracer`, `rt` ni otra variante. El ledger de ADRs es PROPIO (desde 0001).
 
 ## Cómo usar el harness en esta condición
