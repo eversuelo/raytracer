@@ -29,3 +29,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-10T04:35:46.276Z,c2-orch-claude@sonnet-session,6,3db2e0c5-78a4-40b1-9bd1-17bb39f11a04,done,,521,13,5597,540388,0.6841,,,,sub-agente haiku de la fase 6 Tema 7 (delegado por 72ced384); fase corregida: el recolector mapea por índice de run orquestador
 2026-07-09T22:45:16-06:00,c2-orch-claude@sonnet,6,72ced384-d874-49ab-9217-ad8eece5fa67,done,ok,641,19,6883,822609,0.6643,,,,
 2026-07-09T22:58:32-06:00,c2-orch-claude@sonnet,3,32dfdb57-de8c-4bc2-a902-5634c20bf783,done,fail,687,16,4345,574739,0.6537,,,,fallo por antipatrón: el orquestador delegó en background y su sesión headless terminó esperando la notificación; arealight quedó saturado (255) a media calibración. Fix: BASH_MAX_TIMEOUT_MS + prohibición explícita; re-corrida relanzada
+2026-07-09T23:14:44-06:00,c2-orch-claude@sonnet,3,ac276260-e456-4f0b-9ae4-8d083eaa005b,done,ok,814,21,10646,823107,1.0455,,,,
