@@ -32,11 +32,15 @@
 
 El resultado NO es atribuible al conocimiento durable, por tres datos duros:
 
-1. **Lo hidratado estaba vacío**: los eventos `hydrate` de las 6 fases traen
-   `memory: 5-6, decisions: 0` — y esos 5-6 docs son resúmenes `session-<id>` escritos
-   por el hook `capture-session` con **0 caracteres de contenido** (bug del harness:
-   en la campaña sonnet salían con detalle de implementación). El preámbulo inyectado
-   no llevaba conocimiento.
+1. **Lo hidratado era de bajo valor**: los eventos `hydrate` de las 6 fases traen
+   `memory: 5-6, decisions: 0`. Esos docs `session-<id>` de `capture-session` llevan
+   ~2000 chars de `body`, pero son el PREFIJO truncado del transcript de la sesión
+   previa — la narrativa de apertura ("voy a leer la spec…"), NO una síntesis: los
+   diagnósticos útiles (p. ej. el bug de visibilidad de fase 3) ocurren profundo en
+   la sesión y quedan fuera del corte. [CORRECCIÓN 2026-07-09: una versión previa
+   los reportó "0 chars" por leer el campo `content` en vez de `body`.] El preámbulo
+   inyectaba ~10-12k chars de boilerplate de aperturas, incluidas las de sesiones de
+   la celda c0 (fuga c0→c2 vía hook, de bajo valor por lo mismo).
 2. **0 llamadas MCP en las 6 fases**: haiku nunca invocó `search_memory`,
    `record_decision` ni `write_memory`, pese a que el CLAUDE.md de la condición se lo
    instruye. `decisions: 0` toda la celda porque nadie escribió ADRs.

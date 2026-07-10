@@ -15,10 +15,13 @@
   --no-spec-synthesis`) — el agente NO recibió memoria/ADRs del store.
   Verificado en el run de fase 0: `event_counts = {spawn: 1}`, sin evento `hydrate`.
   Matiz: el hook `Stop: aitl capture-session` de la plantilla (presente en TODAS las
-  condiciones por diseño) sí escribió un doc `session-<id>` por sesión al store, pero
-  con contenido VACÍO (0 chars) — telemetría sin fuga de conocimiento. Pendiente del
-  harness: capture-session está sintetizando resúmenes vacíos (en la campaña sonnet
-  salían con detalle de implementación).
+  condiciones por diseño) sí escribió un doc `session-<id>` por sesión al store, con
+  ~2000 chars en el campo `body` — el PREFIJO truncado del transcript (narrativa de
+  apertura "voy a leer la spec…"), no una síntesis. [CORRECCIÓN 2026-07-09: una
+  versión previa de esta bitácora los reportó "vacíos (0 chars)" por leer el campo
+  equivocado del esquema (content en vez de body).] La fuga c0→store existe pero se
+  limita a ese prefijo de bajo valor. Mejora pendiente del harness: capture-session
+  debería sintetizar, no truncar.
 - Modelo agente: `claude-haiku-4-5-20251001` · tope global 60 min · gates objetivos
   independientes del agente (stdin cerrado).
 - **Incidente previo (excluido de esta campaña)**: una corrida anterior del mismo día

@@ -53,12 +53,13 @@ lo atacaron:
    y cerró en verde con −46 % de tiempo y −58 % de costo respecto al fallo de c0.
 
 2. **PERO la ventaja de c2 no es atribuible a la memoria** (hallazgo que invalida la
-   lectura ingenua): la capa de conocimiento estuvo inerte toda la celda —
-   hidratación con docs de sesión VACÍOS (bug de `capture-session`: resúmenes de
-   0 chars), `decisions: 0` en las 6 fases y **cero llamadas MCP** del agente pese a
-   las instrucciones del CLAUDE.md. La diferencia efectiva entre condiciones fue
-   ~21 líneas de CLAUDE.md + un preámbulo vacío. Con n=1, varianza entre corridas es
-   la explicación más parsimoniosa del 5/6 vs 3/6.
+   lectura ingenua): lo hidratado eran prefijos truncados de transcript (~2000 chars
+   de narrativa de apertura por sesión — sin los diagnósticos, que ocurren profundo
+   en cada sesión; corrección 2026-07-09: no estaban "vacíos" como reportó una
+   versión previa, pero sí carecen del contenido útil), `decisions: 0` en las 6
+   fases y **cero llamadas MCP** del agente pese a las instrucciones del CLAUDE.md.
+   Con n=1, varianza entre corridas sigue siendo la explicación más parsimoniosa
+   del 5/6 vs 3/6.
 
 3. **Ambas muertes fueron el mismo modo de fallo, no falta de capacidad**: protocolo
    interactivo filtrado a headless (pedir permiso / esperar notificaciones). En ambos
@@ -80,8 +81,9 @@ lo atacaron:
 
 ## Pendientes para la siguiente campaña
 
-1. Fix `capture-session` (resúmenes vacíos) — neutralizó C2-memoria y el canal DB del
-   orquestador en TODA la campaña.
+1. Mejorar `capture-session`: hoy guarda el PREFIJO truncado del transcript (~2000
+   chars de apertura) en vez de una síntesis — los diagnósticos y soluciones quedan
+   fuera. Neutralizó el valor del canal de memoria en toda la campaña haiku.
 2. Orquestador: correr sin `--mcp` (solo usa shell; las 52 tools comen 80 % de su
    ventana de 20 k) o subir el contexto de qwen a 32 k; y enriquecer el resumen de
    error de la re-delegación (incluir valor medido, umbral y modo).

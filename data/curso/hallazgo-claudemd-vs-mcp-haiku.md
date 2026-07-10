@@ -10,8 +10,8 @@
 
 **Ninguna de las dos.** La ventaja de c2-memory (5/6 fases vs 3/6, fase 3 resuelta en
 la mitad del tiempo) **no puede atribuirse ni al harness como conocimiento ni al uso
-de memoria**, porque ambos canales estuvieron verificablemente inertes durante toda la
-celda. Los únicos diferenciales reales entre condiciones fueron ~21 líneas de
+de memoria**: el canal activo (tools MCP) tuvo cero uso y el pasivo (hidratación)
+solo inyectó prefijos de transcript sin los diagnósticos útiles. Los únicos diferenciales reales entre condiciones fueron ~21 líneas de
 CLAUDE.md y la presencia (ignorada) de 52 tools MCP en el contexto. Con n=1, la
 explicación más defendible del delta es **varianza entre corridas**. El hallazgo firme
 de la campaña es otro: el modo de fallo compartido (protocolo interactivo filtrado a
@@ -95,9 +95,9 @@ condición c2-orchestrator (en curso al cierre de este documento: fase 0 verde e
 
 ## 5. Qué hace falta para poder afirmar "mejora por el harness"
 
-1. **Arreglar `capture-session`** (resúmenes de 0 chars): sin síntesis con contenido,
-   C2-memoria no tiene mecanismo. Verificar después con el monitor de escrituras MCP
-   que los docs lleguen con chars > 0.
+1. **Mejorar `capture-session`** (hoy guarda el prefijo truncado del transcript, no
+   una síntesis): sin resúmenes con los diagnósticos/soluciones, C2-memoria no tiene
+   mecanismo útil que hidratar.
 2. **Forzar el uso del MCP en el prompt de fase** (imperativo, con verificación: "antes
    de codificar, cita el resultado de `list_decisions`") o aceptar que haiku no usa
    tools por iniciativa y medir esa condición con un modelo mayor.
@@ -117,4 +117,4 @@ condición c2-orchestrator (en curso al cierre de este documento: fase 0 verde e
 | Costo total / por fase verde | $2.46 / $0.82 | $3.07 / $0.61 |
 | Llamadas MCP del agente | n/a (sin MCP) | **0** |
 | ADRs escritos | 0 | **0** |
-| Contenido hidratado | n/a (`--no-hydrate`) | **0 chars útiles** |
+| Contenido hidratado | n/a (`--no-hydrate`) | prefijos de transcript (~2000 chars c/u, sin diagnósticos) |

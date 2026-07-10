@@ -21,3 +21,7 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T21:51:27.704Z,c2-orchestrator@haiku-session,3,b0ee8d06-8772-4a5d-a815-8a8442240345,done,,13288,62,66237,5778355,1.2660,,,,sub-agente haiku delegado por 6c644f3a (3ª delegación); dur incluye ~3.5h de suspensión (despierto ≈17 min); matado por timeout de la celda a medio editar
 2026-07-10T01:31:49.363Z,c2-orchestrator@haiku-session,-,d2f2394d-7628-4cf6-93a5-69787febde67,done,,81,7,5315,161418,0.1032,,,,agente del RESUMEN de la celda (run-host post-curso; no sub-agente de fase)
 2026-07-09T22:04:43-06:00,c2-orch-claude@sonnet,0,f7075b34-8ca2-45ab-92d9-24e397579b58,done,ok,220,17,8547,826355,0.8585,,,,
+2026-07-10T04:01:03.523Z,c2-orch-claude@sonnet-session,0,60da44d9-3757-4e54-8286-5d982665d20f,done,,209,32,19415,1734478,,,,,sub-agente delegado por f7075b34
+2026-07-10T04:02:24.809Z,c2-orch-claude@sonnet-session,0,7e0e94f5-3ac0-4a14-a72f-b79d3c716182,done,,88,12,6862,373196,0.1332,,,,sub-agente delegado por f7075b34
+2026-07-10T04:02:27.545Z,c2-orch-claude@sonnet-session,0,21d1c776-6234-415b-9fb9-516dbf39617c,done,,78,26,22469,1034860,,,,,sub-agente delegado por f7075b34
+2026-07-10T04:05:35.335Z,c2-orch-claude@sonnet-session,1,82e15250-4f85-4a9d-acbc-43ce7fb85f43,done,,34,10,8146,334281,,,,,sub-agente delegado por 53723cbb

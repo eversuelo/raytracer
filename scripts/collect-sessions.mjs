@@ -31,7 +31,7 @@ for (const r of hostRuns) {
   if (m0 && String(m0.content || "").trimStart().startsWith("Eres el ORQUESTADOR")) orqHostIds.add(String(r._id));
 }
 const orq = all.filter(r => r.model === "lmstudio" || orqHostIds.has(String(r._id)));
-const subs = hostRuns.filter(r => !orqHostIds.has(String(r._id)));
+const subs = hostRuns.filter(r => !orqHostIds.has(String(r._id)) && r.status !== "running");
 const existing = readFileSync(CSV, "utf8");
 let added = 0;
 for (const s of subs) {
