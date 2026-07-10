@@ -56,12 +56,12 @@ RUN_PROMPT="Eres el ORQUESTADOR de esta fase. NO implementes tú el código de l
 La tarea completa de la fase está en el archivo FASE-PROMPT.txt de tu directorio actual. El material teórico son los Temas 6 y 7: path tracing con MIS (fase 5) + medio participante homogéneo con in-scattering desde fuentes de ÁREA (muestreo de esfera por punto de marcha) y la puntual.
 Sigue EXACTAMENTE estos pasos:
 1. Consulta list_decisions y search_memory (project \"${PROJECT}\") por aprendizajes de las fases previas antes de delegar.
-2. DELEGA la implementación al sub-agente haiku con tu tool Bash (parámetro timeout: 600000, en primer plano):
+2. DELEGA la implementación al sub-agente haiku con tu tool Bash (parámetro timeout: 2400000 — el límite de Bash está elevado en settings; SIEMPRE en primer plano):
 env AITL_HOST_ARGS_CLAUDE_CODE='--model claude-haiku-4-5-20251001' aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project ${PROJECT} --host claude-code --cwd .
 3. VERIFICA tú mismo con Bash (timeout: 600000): ${GATE_CMD}
-4. Si el gate falla, DELEGA una corrección (mismo prefijo env, timeout 600000) citando el error de forma PRECISA: criterio que falló, valor medido, valor esperado y tu hipótesis de la causa en una línea.
+4. Si el gate falla, DELEGA una corrección (mismo prefijo env, timeout 2400000, primer plano) citando el error de forma PRECISA: criterio que falló, valor medido, valor esperado y tu hipótesis de la causa en una línea.
 5. Cuando el gate quede verde, registra el aprendizaje con la tool MCP write_memory (project \"${PROJECT}\"): slug corto y contenido de 3-6 líneas con qué se implementó del path tracing volumétrico (Temas 6+7), el bug más difícil y su solución.
-Máximo 3 delegaciones en total. No uses run_in_background. Tu éxito se mide únicamente con el gate en verde."
+Máximo 3 delegaciones en total. PROHIBIDO run_in_background: en modo headless tu sesión TERMINA al quedarte esperando notificaciones y la fase muere con trabajo a medias — toda delegación va en primer plano con timeout amplio. Tu éxito se mide únicamente con el gate en verde."
 
 T0=$(date +%s)
 set +e
