@@ -24,3 +24,5 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-10T04:02:24.809Z,c2-orch-claude@sonnet-session,0,7e0e94f5-3ac0-4a14-a72f-b79d3c716182,done,,88,12,6862,373196,0.1332,,,,sub-agente delegado por f7075b34
 2026-07-10T04:05:32.709Z,c2-orch-claude@sonnet-session,1,d75646cd-3f08-4252-bb2d-38f288459896,done,,301,8,1995,316428,0.3104,,,,sub-agente delegado por 53723cbb
 2026-07-09T22:11:36-06:00,c2-orch-claude@sonnet,1,53723cbb-d1b6-430e-a14d-a9410041a287,done,ok,397,13,5203,635741,0.6408,,,,
+2026-07-10T04:12:22.833Z,c2-orch-claude@sonnet-session,2,2a4ca76a-fd27-45a3-8e5d-4f1064c69734,done,,322,7,1832,225187,0.3565,,,,sub-agente delegado por 0394ef5f
+2026-07-09T22:18:42-06:00,c2-orch-claude@sonnet,2,0394ef5f-229a-4df2-a35a-0ed122a2db60,done,ok,404,10,4004,468045,0.5377,,,,
