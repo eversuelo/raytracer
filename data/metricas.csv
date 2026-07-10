@@ -18,3 +18,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T21:23:16.419Z,c2-orchestrator@haiku-session,3,cd9776f4-e6f0-411a-bc39-771b996d7feb,done,,893,69,84376,7249847,1.3831,,,,sub-agente haiku delegado por 6c644f3a
 2026-07-09T21:38:29.124Z,c2-orchestrator@haiku-session,3,f8b4d9a7-7ca5-4a41-9245-097e8714f535,done,,760,62,71423,5893971,1.1614,,,,sub-agente haiku delegado por 6c644f3a
 2026-07-09T19:31:43-06:00,c2-orchestrator@haiku,3,,timeout,fail,14915,,,,,,,,
+2026-07-09T21:51:27.704Z,c2-orchestrator@haiku-session,3,b0ee8d06-8772-4a5d-a815-8a8442240345,done,,13288,62,66237,5778355,1.2660,,,,sub-agente haiku delegado por 6c644f3a
