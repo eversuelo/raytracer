@@ -26,5 +26,5 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T22:11:36-06:00,c2-orch-claude@sonnet,1,53723cbb-d1b6-430e-a14d-a9410041a287,done,ok,397,13,5203,635741,0.6408,,,,
 2026-07-10T04:12:22.833Z,c2-orch-claude@sonnet-session,2,2a4ca76a-fd27-45a3-8e5d-4f1064c69734,done,,322,7,1832,225187,0.3565,,,,sub-agente delegado por 0394ef5f
 2026-07-09T22:18:42-06:00,c2-orch-claude@sonnet,2,0394ef5f-229a-4df2-a35a-0ed122a2db60,done,ok,404,10,4004,468045,0.5377,,,,
-2026-07-10T04:35:46.276Z,c2-orch-claude@sonnet-session,3,3db2e0c5-78a4-40b1-9bd1-17bb39f11a04,done,,521,13,5597,540388,0.6841,,,,sub-agente delegado por 72ced384
+2026-07-10T04:35:46.276Z,c2-orch-claude@sonnet-session,6,3db2e0c5-78a4-40b1-9bd1-17bb39f11a04,done,,521,13,5597,540388,0.6841,,,,sub-agente haiku de la fase 6 Tema 7 (delegado por 72ced384); fase corregida: el recolector mapea por índice de run orquestador
 2026-07-09T22:45:16-06:00,c2-orch-claude@sonnet,6,72ced384-d874-49ab-9217-ad8eece5fa67,done,ok,641,19,6883,822609,0.6643,,,,
