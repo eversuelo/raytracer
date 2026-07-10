@@ -34,3 +34,8 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-10T05:02:42.498Z,c2-orch-claude@sonnet-session,3,12a37bd2-1042-4aa9-b222-93da4b41ca2b,done,,576,24,22119,1676238,0.8289,,,,sub-agente delegado por ac276260 (fase corregida a mano: el recolector mapeó por índice; es el sub-agente de la FASE 3 verde)
 2026-07-10T05:15:44.861Z,c2-orch-claude@sonnet-session,4,86856e04-7d5c-4b9f-957a-66106526822c,done,,2173,46,36011,3047990,3.3102,,,,sub-agente delegado por 68522eec (fase corregida a mano: el recolector mapeó por índice; es el sub-agente de la FASE 4 matada por tope)
 2026-07-10T00:25:56-06:00,c2-orch-claude@sonnet,4,69956298-78a5-499c-b3c5-c26f11668a9f,done,ok,1419,59,57586,5384959,3.3677,,,,
+2026-07-10T00:44:00-06:00,c2-orch-claude@sonnet,5,3183f299-e577-interrumpido,killed,ok,900,,,,,,,,gate corrido por el investigador tras stop del task del harness: el run del orquestador (3183f299) quedó interrumpido en la validación con los 6 entregables ya en tolerancia (Δ 0.35-1.38); duración estimada de la fase ≈15 min
+2026-07-10T06:03:37.060Z,c2-orch-claude@sonnet-session,6,fbcfc848-119b-4c35-9817-b442054b9e48,done,,41,8,2074,186332,0.0778,,,,sub-agente delegado por 68522eec
+2026-07-10T06:05:30.492Z,c2-orch-claude@sonnet-session,6,2793514a-49e8-4d52-b057-d7b10b7e01f2,done,,509,77,56018,6138121,1.0781,,,,sub-agente delegado por 68522eec
+2026-07-10T06:22:48.708Z,c2-orch-claude@sonnet-session,6,1ef4e084-91cd-48d3-a90c-c1cc41a459b7,done,,102,14,8860,390246,0.1326,,,,sub-agente delegado por 68522eec
+2026-07-10T06:26:47.310Z,c2-orch-claude@sonnet-session,6,0e4acb8e-c0f5-4eec-89b2-cb36c2051b91,done,,63,15,3412,412829,0.1079,,,,sub-agente delegado por 68522eec
