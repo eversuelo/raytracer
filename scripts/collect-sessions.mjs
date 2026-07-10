@@ -24,7 +24,9 @@ const all = await db.collection("runs").find({ project }).sort({ started_at: 1 }
 // Orquestador = runs del loop nativo (lmstudio) O runs host cuyo prompt (mensaje idx 0)
 // empieza con "Eres el ORQUESTADOR" (condición c2-orch-claude: orquestador también es
 // claude-code). Los demás host-runs son sesiones de sub-agente.
-const hostRuns = all.filter(r => String(r.model).startsWith("host:"));
+// Se excluyen los registros del hook capture-session (harness_config.captured):
+// son duplicados telemetría-de-transcript de sesiones que run-host ya registró.
+const hostRuns = all.filter(r => String(r.model).startsWith("host:") && !r.harness_config?.captured);
 const orqHostIds = new Set();
 for (const r of hostRuns) {
   const m0 = await db.collection("messages").findOne({ run_id: String(r._id), idx: 0 });
