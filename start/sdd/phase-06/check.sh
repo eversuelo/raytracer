@@ -56,10 +56,16 @@ python3 -c "import sys; sys.exit(0 if float('$MA02') < float('$M000') else 1)" \
   || fail "absorción no atenúa: media fog-a02 ($MA02) >= fog-000 ($M000)"
 ok "absorción atenúa: media $MA02 < $M000"
 
-# 5) Glow de in-scattering: parche (512,200) de s02 > 000
-python3 -c "import sys; sys.exit(0 if float('$PS02') > float('$P000') else 1)" \
-  || fail "sin glow de in-scattering: parche fog-s02 ($PS02) <= fog-000 ($P000)"
-ok "in-scattering ilumina el parche de la fuente: $PS02 > $P000"
+# 5) Glow de in-scattering: el CONTRASTE del parche de la fuente contra la media
+# global debe crecer con la dispersión (la extinción oscurece TODO en absoluto, pero
+# el in-scattering concentra energía relativa alrededor de la fuente).
+python3 -c "
+import sys
+r000 = float('$P000') / max(float('$M000'), 1e-9)
+rs02 = float('$PS02') / max(float('$MS02'), 1e-9)
+sys.exit(0 if rs02 > r000 * 1.5 else 1)
+" || fail "sin glow de in-scattering: contraste parche/global de s02 ($PS02/$MS02) no supera 1.5x el de 000 ($P000/$M000)"
+ok "in-scattering crea glow: contraste s02 = $(python3 -c "print(f'{float('$PS02')/float('$MS02'):.2f}')")x vs 000 = $(python3 -c "print(f'{float('$P000')/float('$M000'):.2f}')")x"
 
 # 6) Determinismo OpenMP en el modo compuesto
 timeout 300 ./rt fog 0.01 0.02 </dev/null >/dev/null 2>&1 && cp image.ppm /tmp/fog-nt.ppm

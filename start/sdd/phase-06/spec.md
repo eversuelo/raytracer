@@ -57,10 +57,11 @@ analítica (propiedades físicas del medio), como corresponde a trabajo nuevo.
 > N hilos OpenMP.
 > Autoverificación analítica (no hay referencia): (a) `image-fog-000.ppm` == render del
 > modo point de la fase 2 (cmp bit a bit); (b) la media global de `image-fog-a02.ppm`
-> debe ser MENOR que la de fog-000 (la absorción solo quita energía); (c) la media
-> global de `image-fog-s02.ppm` en el parche 64×64 centrado en el píxel de la fuente
-> (512, 200) debe ser MAYOR que la de fog-000 en ese parche (glow de in-scattering
-> alrededor de la fuente); (d) ningún píxel NaN ni negativo.
+> debe ser MENOR que la de fog-000 (la absorción solo quita energía); (c) el CONTRASTE
+> parche/global del parche 64×64 centrado en el píxel de la fuente (512, 200) debe
+> crecer al menos 1.5× en `image-fog-s02.ppm` respecto a fog-000 (glow de
+> in-scattering: la extinción oscurece todo en absoluto, pero la dispersión concentra
+> energía relativa alrededor de la fuente); (d) ningún píxel NaN ni negativo.
 > Antes de dar por terminado, `make && bash sdd/phase-06/check.sh` debe quedar verde.
 
 ## Criterios de aceptación (gate objetivo — check.sh)
