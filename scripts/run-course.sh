@@ -317,6 +317,15 @@ else
   echo "⚠ el agente no dejó RESUMEN-CURSO.md — revisa el log del resumen."
 fi
 
+# Sesiones de SUB-AGENTES al CSV (solo condición orquestada): una fila por run
+# host:claude-code bajo el project de la celda, cell=<cell>-session, fase por ventana
+# del run orquestador. Idempotente; si Mongo está caído no rompe el cierre.
+if [ "${COND}" = "c2-orchestrator" ]; then
+  AITL_BIN="$(readlink -f "$(command -v aitl)")"           # .../AITL-Harness-JS/dist/src/cli.js
+  AITL_HOME="$(dirname "$(dirname "$(dirname "${AITL_BIN}")")")"
+  node "${ROOT}/scripts/collect-sessions.mjs" "${AITL_HOME}" "${PROJECT}" "${CELL}" || true
+fi
+
 # Cierre de evidencia de la celda en la rama: resumen + CSV + cualquier evidencia
 # rezagada de data/runs (p. ej. runshow del resumen). Un add por patrón (ver arriba).
 git add data/curso data/metricas.csv RESUMEN-METRICAS.md 2>/dev/null || true

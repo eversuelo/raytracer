@@ -11,11 +11,12 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-09T14:33:25-06:00,c2-memory@haiku,5,d7764605-0368-4adc-b511-bce2b128e539,done,fail,316,39,27305,2884524,0.5849,,,,
 2026-07-09T15:10:05-06:00,c2-orchestrator@haiku,0,af6c3496-834d-4487-a9e9-557996a72cd4,done,ok,280,2,263,32428,,,,,
 2026-07-09T15:17:40-06:00,c2-orchestrator@haiku,1,86fe49ba-b471-4312-b0b8-51e3a3c594d3,done,ok,441,2,587,33193,,,,,
-2026-07-09T21:05:40.295Z,c2-orchestrator@haiku-session,0,fe061794-a226-49de-8f97-202c53b304a9,error,,154,,0,0,,,,,sub-agente haiku delegado por af6c3496
+2026-07-09T21:05:40.295Z,c2-orchestrator@haiku-session,0,fe061794-a226-49de-8f97-202c53b304a9,error,,154,,0,0,,,,,sub-agente haiku delegado por af6c3496; hizo la implementación de fase 0 (exit≠0 al cerrar pero gate verde)
 2026-07-09T21:10:19.073Z,c2-orchestrator@haiku-session,1,a8e0c411-5223-46d5-916e-bca9cc05d4de,done,,298,31,17222,1665076,0.3466,,,,sub-agente haiku delegado por 86fe49ba
 2026-07-09T21:17:57.254Z,c2-orchestrator@haiku-session,2,8df78c3e-7602-4d1b-8a06-2a885470b667,done,,141,20,9980,934722,0.2180,,,,sub-agente haiku delegado por 16e9b35c
 2026-07-09T15:23:02-06:00,c2-orchestrator@haiku,2,16e9b35c-818c-4392-a2a8-cb8430dd12d5,done,ok,300,2,383,33459,,,,,
 2026-07-09T21:23:16.419Z,c2-orchestrator@haiku-session,3,cd9776f4-e6f0-411a-bc39-771b996d7feb,done,,893,69,84376,7249847,1.3831,,,,sub-agente haiku delegado por 6c644f3a
 2026-07-09T21:38:29.124Z,c2-orchestrator@haiku-session,3,f8b4d9a7-7ca5-4a41-9245-097e8714f535,done,,760,62,71423,5893971,1.1614,,,,sub-agente haiku delegado por 6c644f3a
-2026-07-09T19:31:43-06:00,c2-orchestrator@haiku,3,,timeout,fail,14915,,,,,,,,
-2026-07-09T21:51:27.704Z,c2-orchestrator@haiku-session,3,b0ee8d06-8772-4a5d-a815-8a8442240345,done,,13288,62,66237,5778355,1.2660,,,,sub-agente haiku delegado por 6c644f3a
+2026-07-09T19:31:43-06:00,c2-orchestrator@haiku,3,,timeout,fail,14915,,,,,,,,dur incluye ~3.5h de suspensión del equipo (despierto ≈42 min); gate final corrió con rt.cpp a medio editar tras el kill; último estado real: arealight Δ=3.15 vs 2.00
+2026-07-09T21:51:27.704Z,c2-orchestrator@haiku-session,3,b0ee8d06-8772-4a5d-a815-8a8442240345,done,,13288,62,66237,5778355,1.2660,,,,sub-agente haiku delegado por 6c644f3a (3ª delegación); dur incluye ~3.5h de suspensión (despierto ≈17 min); matado por timeout de la celda a medio editar
+2026-07-10T01:31:49.363Z,c2-orchestrator@haiku-session,-,d2f2394d-7628-4cf6-93a5-69787febde67,done,,81,7,5315,161418,0.1032,,,,agente del RESUMEN de la celda (run-host post-curso; no sub-agente de fase)
