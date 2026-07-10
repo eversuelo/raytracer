@@ -36,7 +36,7 @@ COURSE_MIN="${COURSE_MIN:-60}"
 
 die() { echo "✗ $*" >&2; exit 1; }
 
-case "${COND}" in c0-bare|c2-memory|c2-orchestrator|c2-local) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory|c2-orchestrator|c2-local)";; esac
+case "${COND}" in c0-bare|c2-memory|c2-orchestrator|c2-orch-claude|c2-local) ;; *) die "condición inválida: ${COND} (c0-bare|c2-memory|c2-orchestrator|c2-orch-claude|c2-local)";; esac
 if [ "${COND}" = "c2-local" ]; then
   # Curso 100 % local: el 2º arg es el id del modelo en LM Studio (`lms ls`). El export
   # fija el modelo efectivo de TODA la celda: env > perfil > .env > config.json
@@ -57,6 +57,7 @@ fi
 # memoria de las otras celdas). El CLAUDE.md de su plantilla apunta a la misma clave.
 PROJECT="aitl-raytracer"
 [ "${COND}" = "c2-orchestrator" ] && PROJECT="aitl-raytracer-orq"
+[ "${COND}" = "c2-orch-claude" ] && PROJECT="aitl-raytracer-orq-sonnet"
 
 MODEL_SAFE="${MODEL_KEY//\//-}"           # ids de LM Studio pueden traer '/' (qwen/qwen3-4b)
 CELL="${COND}@${MODEL_SAFE}"
@@ -207,6 +208,28 @@ ${PROMPT}"
     RC=${PIPESTATUS[0]}   # capturar AQUÍ: kill/rm de abajo pisarían PIPESTATUS
     kill "${WATCHDOG}" 2>/dev/null || true
     rm -f "${ROOT}/start/FASE-PROMPT.txt"
+  elif [ "${COND}" = "c2-orch-claude" ]; then
+    # Orquestador = Claude Code con modelo GRANDE (2º arg, sed'ado en settings.json);
+    # sub-agentes = claude-code HAIKU, clavados vía `env AITL_HOST_ARGS_CLAUDE_CODE`
+    # (el argv del env gana sobre el model de settings.json — ADR-0058). El prompt de
+    # fase viaja en FASE-PROMPT.txt, fuera del contexto del orquestador.
+    GATE_CMD="make"
+    [ -f "${ROOT}/start/sdd/phase-0${FASE}/check.sh" ] && GATE_CMD="make && bash sdd/phase-0${FASE}/check.sh"
+    printf '%s\n' "${PROMPT}" > "${ROOT}/start/FASE-PROMPT.txt"
+    RUN_PROMPT="Eres el ORQUESTADOR de esta fase. NO implementes tú el código de la fase (nada de Edit/Write sobre rt.cpp): tu trabajo es delegar, verificar y documentar.
+La tarea completa de la fase está en el archivo FASE-PROMPT.txt de tu directorio actual.
+Sigue EXACTAMENTE estos pasos:
+1. DELEGA la implementación al sub-agente haiku con tu tool Bash (parámetro timeout: 600000, en primer plano):
+env AITL_HOST_ARGS_CLAUDE_CODE='--model claude-haiku-4-5-20251001' aitl run-host \"\$(cat FASE-PROMPT.txt)\" --project ${PROJECT} --host claude-code --cwd .
+2. VERIFICA tú mismo con Bash (timeout: 600000): ${GATE_CMD}
+3. Si el gate falla, DELEGA una corrección (mismo prefijo env AITL_HOST_ARGS_CLAUDE_CODE, timeout 600000) citando el error de forma PRECISA: valor medido, umbral permitido, modo/render afectado y tu hipótesis de la causa en una línea.
+4. Cuando el gate quede verde, registra el aprendizaje con la tool MCP write_memory (project \"${PROJECT}\"): slug corto y contenido de 3-6 líneas con el bug encontrado, la causa raíz y la corrección aplicada.
+Máximo 3 delegaciones en total. No uses run_in_background. Tu éxito se mide únicamente con el gate en verde."
+    timeout --foreground "${LEFT}" \
+      aitl run-host "${RUN_PROMPT}" --project "${PROJECT}" --host claude-code \
+      --cwd "${ROOT}/start" </dev/null 2>&1 | tee "${LOG}"
+    RC=${PIPESTATUS[0]}
+    rm -f "${ROOT}/start/FASE-PROMPT.txt"
   else
     # c0-bare / c2-memory = Claude Code como agente vía run-host (modelo Claude sed'ado).
     # c0-bare es "sin harness": --no-hydrate evita inyectar memoria/ADRs del store al
@@ -320,7 +343,7 @@ fi
 # Sesiones de SUB-AGENTES al CSV (solo condición orquestada): una fila por run
 # host:claude-code bajo el project de la celda, cell=<cell>-session, fase por ventana
 # del run orquestador. Idempotente; si Mongo está caído no rompe el cierre.
-if [ "${COND}" = "c2-orchestrator" ]; then
+if [ "${COND}" = "c2-orchestrator" ] || [ "${COND}" = "c2-orch-claude" ]; then
   AITL_BIN="$(readlink -f "$(command -v aitl)")"           # .../AITL-Harness-JS/dist/src/cli.js
   AITL_HOME="$(dirname "$(dirname "$(dirname "${AITL_BIN}")")")"
   node "${ROOT}/scripts/collect-sessions.mjs" "${AITL_HOME}" "${PROJECT}" "${CELL}" || true

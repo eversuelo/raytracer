@@ -21,8 +21,17 @@ await client.connect();
 const db = client.db(process.env.MONGODB_DB ?? cfg.MONGODB_DB ?? "aitl");
 
 const all = await db.collection("runs").find({ project }).sort({ started_at: 1 }).toArray();
-const orq = all.filter(r => r.model === "lmstudio");
-const subs = all.filter(r => String(r.model).startsWith("host:"));
+// Orquestador = runs del loop nativo (lmstudio) O runs host cuyo prompt (mensaje idx 0)
+// empieza con "Eres el ORQUESTADOR" (condición c2-orch-claude: orquestador también es
+// claude-code). Los demás host-runs son sesiones de sub-agente.
+const hostRuns = all.filter(r => String(r.model).startsWith("host:"));
+const orqHostIds = new Set();
+for (const r of hostRuns) {
+  const m0 = await db.collection("messages").findOne({ run_id: String(r._id), idx: 0 });
+  if (m0 && String(m0.content || "").trimStart().startsWith("Eres el ORQUESTADOR")) orqHostIds.add(String(r._id));
+}
+const orq = all.filter(r => r.model === "lmstudio" || orqHostIds.has(String(r._id)));
+const subs = hostRuns.filter(r => !orqHostIds.has(String(r._id)));
 const existing = readFileSync(CSV, "utf8");
 let added = 0;
 for (const s of subs) {
