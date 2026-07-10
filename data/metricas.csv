@@ -33,3 +33,4 @@ fecha,cell,fase,run_id,status,gate,dur_s,iters,tok_out,tok_total,costo_pond,veri
 2026-07-10T00:00:40-06:00,c2-orch-claude@sonnet,4,,timeout,fail,2744,,,,,,,,
 2026-07-10T05:02:42.498Z,c2-orch-claude@sonnet-session,3,12a37bd2-1042-4aa9-b222-93da4b41ca2b,done,,576,24,22119,1676238,0.8289,,,,sub-agente delegado por ac276260 (fase corregida a mano: el recolector mapeó por índice; es el sub-agente de la FASE 3 verde)
 2026-07-10T05:15:44.861Z,c2-orch-claude@sonnet-session,4,86856e04-7d5c-4b9f-957a-66106526822c,done,,2173,46,36011,3047990,3.3102,,,,sub-agente delegado por 68522eec (fase corregida a mano: el recolector mapeó por índice; es el sub-agente de la FASE 4 matada por tope)
+2026-07-10T00:25:56-06:00,c2-orch-claude@sonnet,4,69956298-78a5-499c-b3c5-c26f11668a9f,done,ok,1419,59,57586,5384959,3.3677,,,,
