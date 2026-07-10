@@ -32,20 +32,22 @@ agente — exactamente lo que mide la celda c2-orchestrator.
 
 Medición dura, fase por fase:
 
-1. **Lo hidratado estaba vacío.** Los 6 eventos `hydrate` de c2 reportan
-   `memory: 5-6, decisions: 0`. Esos 5-6 docs son resúmenes `session-<id>` escritos
-   por `capture-session` con **0 caracteres de contenido** (bug del harness — en la
-   campaña sonnet de julio-07 salían con detalle de implementación). El preámbulo
-   inyectado al prompt era una lista de bullets vacíos.
+1. **Lo hidratado era boilerplate.** Los 6 eventos `hydrate` de c2 reportan
+   `memory: 5-6, decisions: 0`. Esos docs `session-<id>` de `capture-session` llevan
+   ~2000 chars (campo `body`) — el PREFIJO truncado del transcript previo (la
+   narrativa de apertura "voy a leer la spec…"), no una síntesis: los diagnósticos
+   y soluciones ocurren profundo en cada sesión y quedan fuera del corte.
+   [CORRECCIÓN 2026-07-09: una versión previa reportó "0 chars" por leer el campo
+   `content` del esquema en vez de `body`.]
 2. **El agente nunca usó el MCP.** 0 llamadas a tools `mcp__*` en las 6 sesiones de
    c2-memory — ni lectura (`search_memory`, `list_decisions`) ni escritura
    (`record_decision`, `write_memory`) — pese al mandato explícito del CLAUDE.md.
    Consecuencia: `decisions: 0` toda la celda; el ledger de ADRs del proyecto quedó
    en blanco.
-3. **Sin memoria con contenido y sin ADRs, la fase N no heredó de la N−1 nada** que
-   c0 no heredara también (el código en el working tree). Los dos únicos vehículos de
-   transferencia de conocimiento del diseño C2 estaban rotos (síntesis vacía) o sin
-   usar (tools ignoradas).
+3. **Sin diagnósticos en la memoria y sin ADRs, la fase N no heredó de la N−1 nada
+   accionable** que c0 no heredara también (el código en el working tree). Los dos
+   vehículos de transferencia del diseño C2 estaban degradados (prefijos sin el
+   contenido útil) o sin usar (tools ignoradas).
 
 Conclusión intermedia: **la condición C2-memoria degeneró, de facto, en
 "c0 + CLAUDE.md más largo + tools presentes pero ignoradas"**.
@@ -102,7 +104,8 @@ condición c2-orchestrator (en curso al cierre de este documento: fase 0 verde e
    de codificar, cita el resultado de `list_decisions`") o aceptar que haiku no usa
    tools por iniciativa y medir esa condición con un modelo mayor.
 3. **Decidir el hook `capture-session` en c0**: hoy también escribe al store desde el
-   baseline (docs vacíos esta vez; con el fix serían fuga c0→c2).
+   baseline (prefijos de transcript esta vez; con una síntesis real serían fuga
+   c0→c2 de conocimiento).
 4. **n≥3 por celda** antes de leer deltas de fases/tiempos como efecto.
 5. **Comparar contra c2-orchestrator**, que ataca el modo de fallo real observado
    (cierre de loop externo), no el hipotético (falta de conocimiento).
